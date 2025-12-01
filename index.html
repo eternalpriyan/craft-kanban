@@ -1,0 +1,2395 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Craft Kanban Board</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&display=swap"
+        rel="stylesheet">
+
+    <!-- Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Drag and Drop Polyfill -->
+    <script src="https://unpkg.com/mobile-drag-drop/index.min.js"></script>
+    <script>
+        // Initialize mobile support
+        MobileDragDrop.polyfill({
+            dragImageTranslateOverride: MobileDragDrop.scrollBehaviourDragImageTranslateOverride
+        });
+        window.addEventListener('touchmove', function () { }, { passive: false });
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/mobile-drag-drop/default.css">
+
+    <style>
+        :root {
+            /* Light Theme (Warm/Minimal) */
+            --bg-color: #fdfdfc;
+            --card-bg: #ffffff;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --accent-color: #d97757;
+            /* Burnt Orange */
+            --danger-color: #cc4e4e;
+            --column-bg: #f4f4f2;
+            --column-gap: 20px;
+            --header-border: #e0e0e0;
+            --input-border: #d0d0d0;
+            --success-color: #d97757;
+            --menu-bg: #ffffff;
+            --menu-shadow: rgba(0, 0, 0, 0.1);
+
+            --font-serif: 'Merriweather', serif;
+            --font-sans: 'Inter', sans-serif;
+        }
+
+        [data-theme="dark"] {
+            /* Claude-like Dark Theme */
+            --bg-color: #191919;
+            --card-bg: #25252d;
+            --text-primary: #e1e1e3;
+            --text-secondary: #9ca3af;
+            --accent-color: #d97757;
+            --danger-color: #ef8e8e;
+            --column-bg: #1f1f23;
+            --header-border: #333333;
+            --input-border: #444444;
+            --success-color: #d97757;
+            --menu-bg: #2c2c2e;
+            --menu-shadow: rgba(0, 0, 0, 0.4);
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 30px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s;
+            line-height: 1.6;
+        }
+
+        header {
+            margin-bottom: 10px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--header-border);
+            position: relative;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            margin: 0;
+            font-family: var(--font-serif);
+            font-weight: 300;
+            font-size: 28px;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        h1:hover {
+            opacity: 0.7;
+        }
+
+        #kanbanTitleInput {
+            font-family: var(--font-serif);
+            font-weight: 300;
+            font-size: 28px;
+            letter-spacing: -0.5px;
+            color: var(--text-primary);
+            background: var(--bg-color);
+            border: 1px solid var(--accent-color);
+            border-radius: 4px;
+            padding: 2px 8px;
+            margin: 0;
+            outline: none;
+        }
+
+        /* Quick Note Button */
+        .quick-note-btn {
+            background: none;
+            border: 1px solid var(--input-border);
+            cursor: pointer;
+            color: var(--text-primary);
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            font-family: var(--font-sans);
+        }
+
+        .quick-note-btn:hover {
+            background-color: var(--column-bg);
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        /* Settings Menu */
+        .settings-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 20px;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .settings-btn:hover {
+            background-color: var(--column-bg);
+            color: var(--text-primary);
+        }
+
+        .settings-menu {
+            position: absolute;
+            top: 50px;
+            right: 0;
+            background-color: var(--menu-bg);
+            border: 1px solid var(--header-border);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px var(--menu-shadow);
+            padding: 10px;
+            display: none;
+            z-index: 100;
+            min-width: 240px;
+        }
+
+        .settings-menu.open {
+            display: block;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .menu-item:hover {
+            background-color: var(--column-bg);
+        }
+
+        .menu-item input[type="checkbox"] {
+            accent-color: var(--accent-color);
+        }
+
+        .menu-divider {
+            height: 1px;
+            background-color: var(--header-border);
+            margin: 5px 0;
+        }
+
+        .menu-action {
+            color: var(--accent-color);
+            font-weight: 500;
+        }
+
+        .menu-input-group {
+            padding: 8px 12px;
+        }
+
+        .menu-input-group label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .menu-input-group input {
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: var(--font-sans);
+            box-sizing: border-box;
+        }
+
+        .menu-input-group input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        /* Ticker Tape Navigation */
+        .ticker-tape {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 10px;
+            font-family: var(--font-sans);
+            font-size: 14px;
+            color: var(--text-secondary);
+            display: none;
+        }
+
+        .ticker-btn {
+            background: none;
+            border: 1px solid var(--input-border);
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+
+        .ticker-btn:hover:not(:disabled) {
+            background-color: var(--column-bg);
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .ticker-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            border-color: transparent;
+        }
+
+        .ticker-date {
+            font-weight: 500;
+            min-width: 140px;
+            text-align: center;
+        }
+
+        /* BOARD LAYOUT */
+        .board {
+            display: flex;
+            gap: var(--column-gap);
+            flex: 1;
+            overflow-x: auto;
+            padding-bottom: 20px;
+            align-items: flex-start;
+            height: 100%;
+        }
+
+        .column {
+            flex: 0 0 320px;
+            background-color: var(--column-bg);
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            max-height: 100%;
+            box-sizing: border-box;
+            transition: background-color 0.3s;
+            border: 1px solid rgba(0, 0, 0, 0.03);
+        }
+
+        .column-header {
+            font-family: var(--font-serif);
+            font-weight: 400;
+            font-size: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-primary);
+            opacity: 0.9;
+        }
+
+        .column-header.collapsible {
+            cursor: pointer;
+            user-select: none;
+            transition: opacity 0.2s;
+        }
+
+        .column-header.collapsible:hover {
+            opacity: 1;
+        }
+
+        .collapse-icon {
+            font-size: 10px;
+            margin-right: 6px;
+            opacity: 0.6;
+            transition: transform 0.2s;
+        }
+
+        .count {
+            background: rgba(128, 128, 128, 0.15);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-family: var(--font-sans);
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .task-list {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 100px;
+            padding-right: 4px;
+            position: relative;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+        }
+
+        .task-list.collapsed {
+            max-height: 0 !important;
+            min-height: 0 !important;
+            opacity: 0;
+            overflow: hidden;
+            padding: 0;
+        }
+
+        /* CARD STYLES */
+        .card {
+            background-color: var(--card-bg);
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            cursor: grab;
+            transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s, opacity 0.3s;
+            border: 1px solid transparent;
+            user-select: none;
+            position: relative;
+        }
+
+        [data-theme="dark"] .card {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .card:active {
+            cursor: grabbing;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .card.completed {
+            opacity: 0.5;
+        }
+
+        .card.completed .card-content {
+            text-decoration: line-through;
+            color: var(--text-secondary);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        /* Minimal Square Checkbox */
+        .checkbox {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1.5px solid var(--text-secondary);
+            cursor: pointer;
+            flex-shrink: 0;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            background: transparent;
+        }
+
+        .checkbox:hover {
+            border-color: var(--accent-color);
+        }
+
+        .checkbox.checked {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        .checkbox.checked::after {
+            content: '';
+            width: 4px;
+            height: 8px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg) translate(-1px, -1px);
+        }
+
+        .card-content {
+            flex: 1;
+            line-height: 1.6;
+            font-size: 14px;
+            font-weight: 300;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .card-content:hover {
+            opacity: 0.7;
+        }
+
+        /* Edit Button */
+        .edit-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px 6px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            opacity: 0;
+            margin-left: 8px;
+            flex-shrink: 0;
+        }
+
+        .card-header:hover .edit-btn {
+            opacity: 1;
+        }
+
+        .edit-btn:hover {
+            background-color: var(--column-bg);
+            color: var(--accent-color);
+        }
+
+        /* Delete Button */
+        .delete-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px 6px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            opacity: 0;
+            margin-left: 4px;
+            flex-shrink: 0;
+        }
+
+        .card-header:hover .delete-btn {
+            opacity: 1;
+        }
+
+        .delete-btn:hover {
+            background-color: var(--column-bg);
+            color: var(--danger-color);
+        }
+
+        /* Inline Edit Input */
+        .inline-edit-input {
+            flex: 1;
+            padding: 4px 8px;
+            border: 1px solid var(--accent-color);
+            border-radius: 4px;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            line-height: 1.6;
+        }
+
+        /* Markdown Styles within Card */
+        .card-content p {
+            margin: 0;
+        }
+
+        .card-content ul,
+        .card-content ol {
+            padding-left: 0;
+            margin: 0;
+            list-style: none;
+        }
+
+        /* Remove default list styles */
+        .card-content li {
+            margin-bottom: 4px;
+        }
+
+        /* Hide any checkboxes rendered in markdown content */
+        .card-content input[type="checkbox"] {
+            display: none;
+        }
+
+        .card-content a {
+            color: var(--accent-color);
+            text-decoration: none;
+            border-bottom: 1px dotted var(--accent-color);
+        }
+
+        .card-content a:hover {
+            border-bottom-style: solid;
+        }
+
+        .card-content strong {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card-meta {
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            padding-left: 30px;
+            /* Align with text */
+        }
+
+        .overdue-badge {
+            color: var(--danger-color);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .date-badge {
+            color: var(--text-secondary);
+            opacity: 0.8;
+        }
+
+        /* Expandable Content */
+        .expand-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            margin-left: auto;
+        }
+
+        .expand-btn:hover {
+            background-color: var(--column-bg);
+            color: var(--text-primary);
+        }
+
+        .card-expanded-content {
+            margin-top: 12px;
+            padding-left: 30px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            border-left: 2px solid var(--column-bg);
+            padding-left: 16px;
+            margin-left: 14px;
+            display: none;
+        }
+
+        .card-expanded-content.visible {
+            display: block;
+        }
+
+        .card-expanded-content p {
+            margin: 8px 0;
+        }
+
+        /* Card clickable */
+        .card {
+            position: relative;
+        }
+
+        .card:hover .card-content {
+            cursor: pointer;
+        }
+
+        /* Drag Helpers */
+        .dragging {
+            opacity: 0.4;
+        }
+
+        .placeholder {
+            background: rgba(128, 128, 128, 0.05);
+            border: 1px dashed var(--text-secondary);
+            border-radius: 6px;
+            margin-bottom: 12px;
+            height: 60px;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--header-border);
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        footer a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(128, 128, 128, 0.2);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(128, 128, 128, 0.4);
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+                height: auto;
+                min-height: 100vh;
+            }
+
+            .board {
+                flex-direction: column;
+                overflow-x: hidden;
+                height: auto;
+            }
+
+            .column {
+                flex: none;
+                width: 100%;
+                max-height: none;
+            }
+
+            .header-top {
+                flex-direction: row;
+                align-items: center;
+            }
+        }
+
+        /* Loading Indicator */
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            padding: 20px 40px;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: none;
+            z-index: 1000;
+            font-family: var(--font-serif);
+        }
+
+        /* Setup Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            display: none;
+        }
+
+        .modal {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .modal h2 {
+            margin-top: 0;
+            font-family: var(--font-serif);
+            font-weight: 400;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 10px;
+            margin: 15px 0;
+            border: 1px solid var(--input-border);
+            border-radius: 6px;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            box-sizing: border-box;
+        }
+
+        .modal button:not(.modal-close-btn) {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .modal button:not(.modal-close-btn):hover {
+            opacity: 0.9;
+        }
+
+        /* Quick Date Buttons */
+        .quick-date-btn {
+            padding: 10px;
+            background: var(--column-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--input-border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: var(--font-sans);
+            transition: all 0.2s;
+        }
+
+        .quick-date-btn:hover {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+            transform: translateY(-1px);
+        }
+
+        /* Add Modal Specific Styles */
+        .add-modal {
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            text-align: left;
+            position: relative;
+        }
+
+        .add-modal h3 {
+            margin-top: 0;
+            font-family: var(--font-serif);
+            font-weight: 400;
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        /* Modal Close Button */
+        .modal-close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 28px;
+            line-height: 1;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close-btn:hover {
+            background: var(--column-bg);
+            color: var(--text-primary);
+        }
+
+        /* Note Input */
+        #logTextInput {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--input-border);
+            border-radius: 6px;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 14px;
+            resize: vertical;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+
+        #logTextInput:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        /* Help Text */
+        .help-text {
+            color: var(--text-secondary);
+            font-size: 12px;
+            margin-bottom: 15px;
+            margin-top: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading">Loading Tasks...</div>
+
+    <div class="modal-overlay" id="setupModal">
+        <div class="modal">
+            <h2>Welcome to Craft Kanban</h2>
+            <p>Please enter your Craft Share Link ID and Space ID.</p>
+            <input type="text" id="apiIdInput" placeholder="Share Link ID (e.g. 4LRilONEs5e)">
+            <input type="text" id="spaceIdInput" placeholder="Space ID (e.g. 1b901097-6e10-dd05...)">
+            <button onclick="saveApiId()">Start Board</button>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 15px;">
+                Find your Space ID by opening any document in Craft and using Share → Copy Deep Link. The spaceId is the
+                last parameter in the URL.
+            </p>
+        </div>
+    </div>
+
+    <header>
+        <div class="header-top">
+            <h1 id="kanbanTitle" onclick="editKanbanName()" title="Click to edit">Craft Kanban</h1>
+
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button class="quick-note-btn" id="viewToggleBtn" onclick="toggleViewDirect()" title="Toggle between 3-column and 7-day view (V)">
+                    <span id="viewToggleIcon">☰</span>
+                </button>
+                <button class="quick-note-btn" onclick="openAddTaskModal()" title="Add New Task (Shift+Space)">+
+                    Task</button>
+                <button class="quick-note-btn" onclick="openAddModal()" title="Add Quick Note (Spacebar)">+
+                    Note</button>
+                <div style="position: relative;">
+                    <button class="settings-btn" onclick="toggleSettings()">⚙️</button>
+                    <div class="settings-menu" id="settingsMenu">
+                        <div class="menu-input-group">
+                            <label for="kanbanNameInput">Kanban Name</label>
+                            <input type="text" id="kanbanNameInput" placeholder="Craft Kanban"
+                                onchange="updateKanbanName()">
+                        </div>
+                        <div class="menu-divider"></div>
+                        <label class="menu-item">
+                            <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+                            Dark Mode
+                        </label>
+                        <label class="menu-item">
+                            <input type="checkbox" id="viewToggle" onchange="toggleView()">
+                            7-Day View
+                        </label>
+                        <label class="menu-item">
+                            <input type="checkbox" id="completedToggle" onchange="renderBoard()">
+                            Show Completed
+                        </label>
+                        <label class="menu-item">
+                            <input type="checkbox" id="mondayToggle" onchange="toggleMondayStart()">
+                            First Day is Monday
+                        </label>
+                        <div class="menu-divider"></div>
+                        <div class="menu-item menu-action" onclick="changeApiId()">
+                            Change Settings
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ticker Tape Navigation -->
+        <div class="ticker-tape" id="tickerTape">
+            <button class="ticker-btn" id="prevWeekBtn" onclick="shiftWeek(-1)">←</button>
+            <span class="ticker-date" id="tickerDateRange">Nov 30 - Dec 6</span>
+            <button class="ticker-btn" onclick="shiftWeek(1)">→</button>
+        </div>
+    </header>
+
+    <div class="board" id="boardContainer">
+    </div>
+
+    <footer>
+        <div>
+            by Priyan Nithya (<a href="mailto:priyan@priyan.yoga">priyan@priyan.yoga</a>)
+        </div>
+        <div>
+            <a href="https://buymeacoffee.com/npsoy" target="_blank">☕ Buy me a coffee</a>
+        </div>
+    </footer>
+
+    <!-- Add Quick Note Modal -->
+    <div class="modal-overlay" id="addModal">
+        <div class="modal add-modal">
+            <button class="modal-close-btn" onclick="closeAddModal()" title="Close (Esc)">×</button>
+            <h3>Quick Note</h3>
+            <p class="help-text">Appends to today's daily note with timestamp. Enter to submit, Shift+Enter for new
+                line.</p>
+
+            <textarea id="logTextInput" placeholder="What's on your mind?" rows="4" autofocus></textarea>
+        </div>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div class="modal-overlay" id="addTaskModal">
+        <div class="modal add-modal">
+            <button class="modal-close-btn" onclick="closeAddTaskModal()" title="Close (Esc)">×</button>
+            <h3>Add New Task</h3>
+            <p class="help-text">Enter to submit, Shift+Enter for new line. Leave date empty for Inbox.</p>
+
+            <textarea id="newTaskInput" placeholder="What needs to be done?" rows="3" autofocus
+                style="width: 100%; padding: 12px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--bg-color); color: var(--text-primary); font-family: var(--font-sans); resize: vertical; margin-bottom: 15px;"></textarea>
+
+            <div class="menu-input-group" style="padding: 0; margin-bottom: 0;">
+                <label for="newTaskDate">Due Date (Optional)</label>
+                <input type="date" id="newTaskDate" style="width: 100%; padding: 10px;">
+            </div>
+        </div>
+    </div>
+
+    <!-- Date Picker Modal -->
+    <div class="modal-overlay" id="datePickerModal">
+        <div class="modal" style="max-width: 400px; text-align: left;">
+            <h3 style="margin-top: 0; margin-bottom: 20px;">Select Due Date</h3>
+
+            <!-- Quick Actions -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                <button class="quick-date-btn" onclick="selectQuickDate(0)">Today</button>
+                <button class="quick-date-btn" onclick="selectQuickDate(1)">Tomorrow</button>
+                <button class="quick-date-btn" onclick="selectQuickDate(7)">Next Week</button>
+            </div>
+
+            <!-- Date Input -->
+            <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Or choose a specific date:</label>
+            <input type="date" id="datePickerInput"
+                style="width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--bg-color); color: var(--text-primary); font-size: 14px;">
+
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 10px;">
+                <button onclick="confirmDatePick()"
+                    style="flex: 1; padding: 12px; background: var(--accent-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                    Confirm
+                </button>
+                <button onclick="closeDatePicker()"
+                    style="flex: 1; padding: 12px; background: var(--column-bg); color: var(--text-primary); border: 1px solid var(--input-border); border-radius: 6px; cursor: pointer; font-size: 14px;">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        let API_ID = localStorage.getItem('craft_api_id');
+        let SPACE_ID = localStorage.getItem('craft_space_id');
+        const API_TOKEN = "guest-access";
+        let TASKS_CACHE = [];
+        let IS_SEVEN_DAY_VIEW = false;
+        let IS_DARK_MODE = false;
+        let IS_MONDAY_FIRST = false; // Default to Sunday
+        let VIEW_START_DATE = new Date();
+        const TODAY = new Date();
+        TODAY.setHours(0, 0, 0, 0);
+        let HOVERED_TASK_ID = null;
+
+        // --- INITIALIZATION ---
+
+        window.onload = function () {
+            // Load saved kanban name or use default
+            const savedName = localStorage.getItem('kanban_name') || 'Craft Kanban';
+            document.getElementById('kanbanTitle').textContent = savedName;
+            document.getElementById('kanbanNameInput').value = savedName;
+
+            // Load persisted settings - ORDER MATTERS!
+            // Load IS_MONDAY_FIRST FIRST because toggleView() needs it for week calculation
+            IS_MONDAY_FIRST = localStorage.getItem('monday_first') === 'true'; // Default false (Sunday)
+            document.getElementById('mondayToggle').checked = IS_MONDAY_FIRST;
+
+            IS_DARK_MODE = localStorage.getItem('theme_mode') === 'true';
+            document.getElementById('themeToggle').checked = IS_DARK_MODE;
+            toggleTheme(); // Apply theme
+
+            IS_SEVEN_DAY_VIEW = localStorage.getItem('view_mode') === 'true';
+            document.getElementById('viewToggle').checked = IS_SEVEN_DAY_VIEW;
+
+            // Set initial icon state
+            const icon = document.getElementById('viewToggleIcon');
+            icon.textContent = IS_SEVEN_DAY_VIEW ? '▦' : '☰';
+
+            toggleView(); // Apply view - uses IS_MONDAY_FIRST
+
+            const showCompleted = localStorage.getItem('show_completed') !== 'false'; // Default true
+            document.getElementById('completedToggle').checked = showCompleted;
+
+            document.addEventListener('click', function (event) {
+                const menu = document.getElementById('settingsMenu');
+                const btn = document.querySelector('.settings-btn');
+                if (!menu.contains(event.target) && !btn.contains(event.target)) {
+                    menu.classList.remove('open');
+                }
+            });
+
+            // Keyboard shortcuts for add modal
+            document.addEventListener('keydown', function (event) {
+                // Spacebar - but not when typing in input/textarea/contenteditable
+                if (event.code === 'Space' &&
+                    !event.target.matches('input, textarea, [contenteditable="true"]') &&
+                    event.target.tagName !== 'INPUT' &&
+                    event.target.tagName !== 'TEXTAREA') {
+
+                    if (event.shiftKey) {
+                        event.preventDefault();
+                        openAddTaskModal();
+                    } else {
+                        event.preventDefault();
+                        openAddModal();
+                    }
+                }
+
+                // ESC to close modal
+                if (event.key === 'Escape') {
+                    const modal = document.getElementById('addModal');
+                    if (modal.style.display === 'flex') {
+                        closeAddModal();
+                    }
+                    const taskModal = document.getElementById('addTaskModal');
+                    if (taskModal.style.display === 'flex') {
+                        closeAddTaskModal();
+                    }
+                }
+
+                // V key to toggle view - but not when typing in input/textarea
+                if (event.key === 'v' &&
+                    !event.target.matches('input, textarea, [contenteditable="true"]') &&
+                    event.target.tagName !== 'INPUT' &&
+                    event.target.tagName !== 'TEXTAREA') {
+                    event.preventDefault();
+                    toggleViewDirect();
+                }
+
+                // Delete key handler
+                if ((event.key === 'Delete' || event.key === 'Backspace') && HOVERED_TASK_ID) {
+                    // Check if we are editing text
+                    if (!event.target.matches('input, textarea, [contenteditable="true"]')) {
+                        event.preventDefault();
+                        deleteTask(HOVERED_TASK_ID);
+                    }
+                }
+            });
+
+            // Close modals when clicking outside
+            const addModal = document.getElementById('addModal');
+            if (addModal) {
+                addModal.addEventListener('click', function (event) {
+                    if (event.target === this) {
+                        closeAddModal();
+                    }
+                });
+            }
+
+            const addTaskModal = document.getElementById('addTaskModal');
+            if (addTaskModal) {
+                addTaskModal.addEventListener('click', function (event) {
+                    if (event.target === this) {
+                        closeAddTaskModal();
+                    }
+                });
+            }
+
+            if (!API_ID || !SPACE_ID) {
+                document.getElementById('setupModal').style.display = 'flex';
+            } else {
+                initBoard();
+            }
+        };
+
+        function saveApiId() {
+            const apiInput = document.getElementById('apiIdInput').value.trim();
+            const spaceInput = document.getElementById('spaceIdInput').value.trim();
+
+            // Extract API ID if full URL is pasted
+            const match = apiInput.match(/links\/([a-zA-Z0-9]{11})/);
+            const id = match ? match[1] : apiInput;
+
+            if (id.length < 5) {
+                alert("Please enter a valid Share Link ID.");
+                return;
+            }
+
+            if (spaceInput.length < 10) {
+                alert("Please enter a valid Space ID.");
+                return;
+            }
+
+            localStorage.setItem('craft_api_id', id);
+            localStorage.setItem('craft_space_id', spaceInput);
+            API_ID = id;
+            SPACE_ID = spaceInput;
+            document.getElementById('setupModal').style.display = 'none';
+            initBoard();
+        }
+
+        function changeApiId() {
+            document.getElementById('apiIdInput').value = API_ID || '';
+            document.getElementById('spaceIdInput').value = SPACE_ID || '';
+            document.getElementById('setupModal').style.display = 'flex';
+            toggleSettings(); // Close menu
+        }
+
+        function getBaseUrl() {
+            return `https://connect.craft.do/links/${API_ID}/api/v1`;
+        }
+
+        // --- QUICK NOTE MODAL FUNCTIONS ---
+
+        function openAddModal() {
+            const modal = document.getElementById('addModal');
+            modal.style.display = 'flex';
+
+            // Focus textarea
+            setTimeout(() => {
+                const textarea = document.getElementById('logTextInput');
+                textarea.focus();
+
+                // Add keyboard shortcut listener for Enter
+                textarea.onkeydown = function (e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        submitLog();
+                    }
+                };
+            }, 100);
+        }
+
+        function closeAddModal() {
+            document.getElementById('addModal').style.display = 'none';
+            document.getElementById('logTextInput').value = '';
+        }
+
+        async function submitLog() {
+            const logText = document.getElementById('logTextInput').value.trim();
+
+            if (!logText) {
+                alert('Please enter a note');
+                return;
+            }
+
+            showLoading(true);
+
+            try {
+                const BASE_URL = getBaseUrl();
+
+                // Format: "- HH:MM: [text]"
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const timestamp = `${hours}:${minutes}`;
+                const formattedLog = `- ${timestamp}: ${logText}`;
+
+                // Insert as block at end of today's daily note
+                const response = await fetch(`${BASE_URL}/blocks`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        blocks: [{
+                            type: "text",
+                            markdown: formattedLog
+                        }],
+                        position: {
+                            position: "end",
+                            date: "today"
+                        }
+                    })
+                });
+
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+
+                const result = await response.json();
+                console.log('Note created:', result);
+
+                // Close modal
+                closeAddModal();
+
+            } catch (error) {
+                console.error('Error creating note:', error);
+                alert('Failed to create note. Please try again.');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // --- ADD TASK MODAL FUNCTIONS ---
+
+        function openAddTaskModal() {
+            const modal = document.getElementById('addTaskModal');
+            modal.style.display = 'flex';
+
+            // Focus textarea
+            setTimeout(() => {
+                const textarea = document.getElementById('newTaskInput');
+                textarea.focus();
+
+                // Add keyboard shortcut listener for Enter
+                textarea.onkeydown = function (e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        submitNewTask();
+                    }
+                };
+            }, 100);
+        }
+
+        function closeAddTaskModal() {
+            document.getElementById('addTaskModal').style.display = 'none';
+            document.getElementById('newTaskInput').value = '';
+            document.getElementById('newTaskDate').value = '';
+        }
+
+        async function submitNewTask() {
+            const text = document.getElementById('newTaskInput').value.trim();
+            const dateVal = document.getElementById('newTaskDate').value;
+
+            if (!text) {
+                alert('Please enter a task description');
+                return;
+            }
+
+            showLoading(true);
+            const BASE_URL = getBaseUrl();
+
+            try {
+                // Use the /tasks endpoint for proper task creation
+                const markdown = `- [ ] ${text}`;
+
+                // Build task object - only include scheduleDate if a date is selected
+                const task = {
+                    markdown: markdown,
+                    location: {
+                        type: "inbox"
+                    }
+                };
+
+                // Only add taskInfo with scheduleDate if date is provided
+                if (dateVal) {
+                    task.taskInfo = {
+                        scheduleDate: dateVal
+                    };
+                }
+
+                const taskPayload = {
+                    tasks: [task]
+                };
+
+                const response = await fetch(`${BASE_URL}/tasks`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(taskPayload)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API Error:', errorText);
+                    throw new Error(`API Error: ${response.status}`);
+                }
+
+                closeAddTaskModal();
+                initBoard(); // Refresh board
+
+            } catch (error) {
+                console.error('Error creating task:', error);
+                alert('Failed to create task. Check console for details.');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // --- DATE PICKER MODAL FUNCTIONS ---
+
+        let datePickCallback = null;
+
+        function openDatePicker(callback) {
+            datePickCallback = callback;
+            const modal = document.getElementById('datePickerModal');
+            modal.style.display = 'flex';
+
+            // Default to tomorrow
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            document.getElementById('datePickerInput').value = getLocalISOString(tomorrow);
+
+            document.getElementById('datePickerInput').focus();
+        }
+
+        function closeDatePicker() {
+            document.getElementById('datePickerModal').style.display = 'none';
+            datePickCallback = null;
+        }
+
+        function selectQuickDate(daysFromNow) {
+            const date = new Date();
+            date.setDate(date.getDate() + daysFromNow);
+            const dateStr = getLocalISOString(date);
+
+            // Update the date input
+            document.getElementById('datePickerInput').value = dateStr;
+
+            // Immediately confirm
+            if (datePickCallback) {
+                datePickCallback(dateStr);
+            }
+            closeDatePicker();
+        }
+
+        function confirmDatePick() {
+            const dateVal = document.getElementById('datePickerInput').value;
+            if (dateVal && datePickCallback) {
+                datePickCallback(dateVal);
+            }
+            closeDatePicker();
+        }
+
+        async function initBoard() {
+            showLoading(true);
+            const BASE_URL = getBaseUrl();
+
+            try {
+                const [active, upcoming, inbox, logbook] = await Promise.all([
+                    fetchWithRetry(`${BASE_URL}/tasks?scope=active`),
+                    fetchWithRetry(`${BASE_URL}/tasks?scope=upcoming`),
+                    fetchWithRetry(`${BASE_URL}/tasks?scope=inbox`),
+                    fetchWithRetry(`${BASE_URL}/tasks?scope=logbook`)
+                ]);
+
+                const allTasks = [...(active.items || []), ...(upcoming.items || []), ...(inbox.items || []), ...(logbook.items || [])];
+
+                // DEBUG: Log complete task object structure
+                console.log('=== FULL TASK STRUCTURE DEBUG ===');
+                console.log('Total tasks:', allTasks.length);
+                if (allTasks.length > 0) {
+                    console.log('First task (complete object):', allTasks[0]);
+                    console.log('All properties:', Object.keys(allTasks[0]));
+
+                    // Look for any task that might have subtasks
+                    const taskWithContent = allTasks.find(t => t.content && t.content.length > 1);
+                    if (taskWithContent) {
+                        console.log('Task with multiple content items:', taskWithContent);
+                        console.log('Content array:', taskWithContent.content);
+                    }
+                }
+                console.log('=== END DEBUG ===');
+
+                // Deduplicate tasks (API sometimes returns duplicates across scopes)
+                const seen = new Set();
+                TASKS_CACHE = allTasks.filter(item => {
+                    if (seen.has(item.id)) return false;
+                    seen.add(item.id);
+                    return true;
+                });
+
+                renderBoard();
+
+            } catch (error) {
+                console.error(error);
+                alert("Error connecting to Craft. Please check your ID and internet connection.");
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function fetchWithRetry(url, retries = 3, backoff = 1000) {
+            try {
+                const res = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${API_TOKEN}` }
+                });
+
+                if (res.status === 429) {
+                    if (retries > 0) {
+                        await new Promise(r => setTimeout(r, backoff));
+                        return fetchWithRetry(url, retries - 1, backoff * 2);
+                    } else {
+                        throw new Error("API Rate Limit Exceeded");
+                    }
+                }
+
+                if (!res.ok) throw new Error(`API Error: ${res.status}`);
+                return await res.json();
+            } catch (err) {
+                if (retries > 0) {
+                    await new Promise(r => setTimeout(r, backoff));
+                    return fetchWithRetry(url, retries - 1, backoff * 2);
+                }
+                return { items: [] };
+            }
+        }
+
+
+
+
+        function toggleSettings() {
+            document.getElementById('settingsMenu').classList.toggle('open');
+        }
+
+        function toggleColumn(colId) {
+            const taskList = document.getElementById(`list-${colId}`);
+            const header = document.querySelector(`#col-${colId} .column-header`);
+            const icon = header.querySelector('.collapse-icon');
+
+            const isCurrentlyCollapsed = taskList.classList.contains('collapsed');
+
+            if (isCurrentlyCollapsed) {
+                taskList.classList.remove('collapsed');
+                icon.textContent = '▼';
+                localStorage.setItem(`column_${colId}_collapsed`, 'false');
+            } else {
+                taskList.classList.add('collapsed');
+                icon.textContent = '▶';
+                localStorage.setItem(`column_${colId}_collapsed`, 'true');
+            }
+        }
+
+        function toggleViewDirect() {
+            // Toggle the view directly from button
+            IS_SEVEN_DAY_VIEW = !IS_SEVEN_DAY_VIEW;
+
+            // Update checkbox in settings menu to match
+            document.getElementById('viewToggle').checked = IS_SEVEN_DAY_VIEW;
+
+            // Update icon
+            const icon = document.getElementById('viewToggleIcon');
+            icon.textContent = IS_SEVEN_DAY_VIEW ? '▦' : '☰';
+
+            // Save and apply
+            localStorage.setItem('view_mode', IS_SEVEN_DAY_VIEW);
+
+            const ticker = document.getElementById('tickerTape');
+            if (IS_SEVEN_DAY_VIEW) {
+                ticker.style.display = 'flex';
+
+                // Initialize VIEW_START_DATE based on Monday/Sunday preference
+                const d = new Date();
+                d.setHours(0, 0, 0, 0);
+                const day = d.getDay();
+                const diff = d.getDate() - day + (IS_MONDAY_FIRST ? (day === 0 ? -6 : 1) : 0);
+                VIEW_START_DATE = new Date(d.setDate(diff));
+
+                updateTickerDate();
+            } else {
+                ticker.style.display = 'none';
+            }
+
+            if (TASKS_CACHE.length > 0) {
+                renderBoard();
+            }
+        }
+
+        function toggleView() {
+            // Called from settings menu checkbox
+            IS_SEVEN_DAY_VIEW = document.getElementById('viewToggle').checked;
+
+            // Update icon to match
+            const icon = document.getElementById('viewToggleIcon');
+            icon.textContent = IS_SEVEN_DAY_VIEW ? '▦' : '☰';
+
+            localStorage.setItem('view_mode', IS_SEVEN_DAY_VIEW);
+
+            const ticker = document.getElementById('tickerTape');
+            if (IS_SEVEN_DAY_VIEW) {
+                ticker.style.display = 'flex';
+
+                // Initialize VIEW_START_DATE based on Monday/Sunday preference
+                const d = new Date();
+                d.setHours(0, 0, 0, 0);
+                const day = d.getDay();
+                const diff = d.getDate() - day + (IS_MONDAY_FIRST ? (day === 0 ? -6 : 1) : 0);
+                VIEW_START_DATE = new Date(d.setDate(diff));
+
+                updateTickerDate();
+            } else {
+                ticker.style.display = 'none';
+            }
+
+            if (TASKS_CACHE.length > 0) {
+                renderBoard();
+            }
+        }
+
+        function toggleTheme() {
+            IS_DARK_MODE = document.getElementById('themeToggle').checked;
+            document.documentElement.setAttribute('data-theme', IS_DARK_MODE ? 'dark' : 'light');
+            localStorage.setItem('theme_mode', IS_DARK_MODE);
+        }
+
+        function toggleMondayStart() {
+            IS_MONDAY_FIRST = document.getElementById('mondayToggle').checked;
+            localStorage.setItem('monday_first', IS_MONDAY_FIRST);
+            if (IS_SEVEN_DAY_VIEW) {
+                // Reset view start date to align with new start of week
+                const d = new Date();
+                d.setHours(0, 0, 0, 0);
+
+                const day = d.getDay(); // 0 (Sun) - 6 (Sat)
+                const diff = d.getDate() - day + (IS_MONDAY_FIRST ? (day === 0 ? -6 : 1) : 0);
+
+                VIEW_START_DATE = new Date(d.setDate(diff));
+
+                updateTickerDate();
+                renderBoard();
+            }
+        }
+
+        function updateKanbanName() {
+            const newName = document.getElementById('kanbanNameInput').value.trim() || 'Craft Kanban';
+            const titleElement = document.getElementById('kanbanTitle');
+
+            if (titleElement) {
+                titleElement.textContent = newName;
+            }
+
+            localStorage.setItem('kanban_name', newName);
+        }
+
+        function editKanbanName() {
+            const titleElement = document.getElementById('kanbanTitle');
+            const currentName = titleElement.textContent;
+
+            // Create input element
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.id = 'kanbanTitleInput';
+            input.value = currentName;
+
+            // Replace h1 with input
+            titleElement.parentNode.replaceChild(input, titleElement);
+
+            // Focus and select all text
+            input.focus();
+            input.select();
+
+            // Save on Enter or blur
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveKanbanNameInline();
+                } else if (e.key === 'Escape') {
+                    saveKanbanNameInline();
+                }
+            });
+
+            input.addEventListener('blur', function () {
+                saveKanbanNameInline();
+            });
+        }
+
+        function saveKanbanNameInline() {
+            const inputElement = document.getElementById('kanbanTitleInput');
+            if (!inputElement) return;
+
+            const newName = inputElement.value.trim() || 'Craft Kanban';
+
+            // Create h1 element
+            const h1 = document.createElement('h1');
+            h1.id = 'kanbanTitle';
+            h1.textContent = newName;
+            h1.onclick = editKanbanName;
+            h1.title = 'Click to edit';
+
+            // Replace input with h1
+            inputElement.parentNode.replaceChild(h1, inputElement);
+
+            // Save to localStorage
+            localStorage.setItem('kanban_name', newName);
+
+            // Update the settings menu input as well
+            document.getElementById('kanbanNameInput').value = newName;
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        // --- TICKER TAPE LOGIC ---
+
+        function shiftWeek(direction) {
+            VIEW_START_DATE.setDate(VIEW_START_DATE.getDate() + (direction * 7));
+            updateTickerDate();
+            renderBoard();
+        }
+
+        function updateTickerDate() {
+            const start = new Date(VIEW_START_DATE);
+            const end = new Date(VIEW_START_DATE);
+            end.setDate(end.getDate() + 6);
+
+            const options = { month: 'short', day: 'numeric' };
+            const rangeStr = `${start.toLocaleDateString('en-US', options)} - ${end.toLocaleDateString('en-US', options)}`;
+            document.getElementById('tickerDateRange').innerText = rangeStr;
+
+            const currentStart = new Date(VIEW_START_DATE);
+            currentStart.setHours(0, 0, 0, 0);
+
+            if (currentStart <= TODAY) {
+                document.getElementById('prevWeekBtn').disabled = true;
+            } else {
+                document.getElementById('prevWeekBtn').disabled = false;
+            }
+        }
+
+        // --- RENDERING LOGIC ---
+
+        function renderBoard() {
+            const container = document.getElementById('boardContainer');
+            container.innerHTML = '';
+
+            if (IS_SEVEN_DAY_VIEW) {
+                renderSevenDayColumns(container);
+            } else {
+                renderStandardColumns(container);
+            }
+
+            distributeTasks();
+        }
+
+        function renderStandardColumns(container) {
+            const columns = [
+                { id: 'backlog', title: 'Backlog', tooltip: 'Overdue tasks', collapsible: true, defaultOpen: true },
+                { id: 'inbox', title: 'Inbox', tooltip: 'Tasks with no due date', collapsible: true, defaultOpen: false },
+                { id: 'today', title: 'Today' },
+                { id: 'future', title: 'Future', tooltip: 'Drag here to set a future date' }
+            ];
+            createColumnsHTML(container, columns);
+        }
+
+        function renderSevenDayColumns(container) {
+            const columns = [
+                { id: 'backlog', title: 'Backlog', tooltip: 'Overdue tasks', collapsible: true, defaultOpen: true },
+                { id: 'inbox', title: 'Inbox', tooltip: 'Tasks with no due date', collapsible: true, defaultOpen: false }
+            ];
+
+            // Ensure VIEW_START_DATE is correctly aligned to start of week
+            // This is just a safeguard, shiftWeek/toggleView should handle it
+
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(VIEW_START_DATE);
+                d.setDate(d.getDate() + i);
+                const dateStr = getLocalISOString(d);
+
+                // Format: "Sunday, 30th Nov"
+                const weekday = d.toLocaleDateString('en-US', { weekday: 'long' });
+                const day = d.getDate();
+                const month = d.toLocaleDateString('en-US', { month: 'short' });
+
+                // Add ordinal suffix (st, nd, rd, th)
+                const suffix = (day === 1 || day === 21 || day === 31) ? 'st' :
+                               (day === 2 || day === 22) ? 'nd' :
+                               (day === 3 || day === 23) ? 'rd' : 'th';
+
+                const displayStr = `${weekday}, ${day}${suffix} ${month}`;
+
+                const todayStr = getLocalISOString(new Date());
+                const title = (dateStr === todayStr) ? `Today (${displayStr})` : displayStr;
+
+                columns.push({
+                    id: dateStr,
+                    title: title
+                });
+            }
+
+            columns.push({ id: 'future', title: 'Future', tooltip: 'Drag here to set a future date' });
+
+            createColumnsHTML(container, columns);
+        }
+
+        function createColumnsHTML(container, cols) {
+            cols.forEach(col => {
+                const colDiv = document.createElement('div');
+                colDiv.className = 'column';
+                colDiv.id = `col-${col.id}`;
+                colDiv.dataset.colId = col.id;
+
+                colDiv.ondrop = (e) => dropInColumn(e, col.id);
+                colDiv.ondragover = (e) => allowDrop(e, col.id);
+                // REMOVED ondragleave to prevent flickering
+
+                const tooltipAttr = col.tooltip ? `title="${col.tooltip}"` : '';
+
+                // Check if column should be collapsed (from localStorage or default)
+                const storageKey = `column_${col.id}_collapsed`;
+                const isCollapsed = col.collapsible
+                    ? (localStorage.getItem(storageKey) === null
+                        ? !col.defaultOpen
+                        : localStorage.getItem(storageKey) === 'true')
+                    : false;
+
+                const collapsedClass = isCollapsed ? ' collapsed' : '';
+                const chevron = col.collapsible ? `<span class="collapse-icon">${isCollapsed ? '▶' : '▼'}</span>` : '';
+
+                colDiv.innerHTML = `
+                    <div class="column-header${col.collapsible ? ' collapsible' : ''}" ${tooltipAttr} ${col.collapsible ? `onclick="toggleColumn('${col.id}')"` : ''}>
+                        ${chevron}
+                        ${col.title}
+                        <span class="count" id="count-${col.id}">0</span>
+                    </div>
+                    <div class="task-list${collapsedClass}" id="list-${col.id}"></div>
+                `;
+                container.appendChild(colDiv);
+            });
+        }
+
+        function distributeTasks() {
+            const today = getLocalISOString(new Date());
+            const showCompleted = document.getElementById('completedToggle').checked;
+            localStorage.setItem('show_completed', showCompleted);
+
+            const counts = {};
+
+            TASKS_CACHE.forEach(task => {
+                // Note: Subtasks appear as separate items in the API response
+                // No hierarchy metadata is provided to filter them out
+
+                const isCompleted = task.taskInfo?.state === 'done' || task.markdown.startsWith('- [x]');
+
+                if (!showCompleted && isCompleted) return;
+
+                const date = task.taskInfo?.scheduleDate;
+                let targetId = '';
+
+                if (IS_SEVEN_DAY_VIEW) {
+                    if (!date) {
+                        // No date = Inbox
+                        targetId = 'inbox';
+                    } else if (date < today) {
+                        // Past date = Backlog (overdue)
+                        targetId = 'backlog';
+                    } else {
+                        const viewStart = new Date(VIEW_START_DATE);
+                        viewStart.setHours(0, 0, 0, 0);
+
+                        const viewStartStr = getLocalISOString(viewStart);
+
+                        const d = new Date(viewStart);
+                        d.setDate(d.getDate() + 6);
+                        const viewEndStr = getLocalISOString(d);
+
+                        if (date < viewStartStr) {
+                            targetId = 'backlog';
+                        } else if (date > viewEndStr) {
+                            targetId = 'future';
+                        } else {
+                            targetId = date;
+                        }
+                    }
+                } else {
+                    // Standard view logic
+                    if (!date) {
+                        targetId = 'inbox';
+                    } else if (date === today) {
+                        targetId = 'today';
+                    } else if (date < today) {
+                        targetId = 'backlog';
+                    } else {
+                        targetId = 'future';
+                    }
+                }
+
+                createTaskCard(task, targetId, isCompleted);
+
+                counts[targetId] = (counts[targetId] || 0) + 1;
+            });
+
+            Object.keys(counts).forEach(id => {
+                const badge = document.getElementById(`count-${id}`);
+                if (badge) badge.innerText = counts[id];
+            });
+        }
+
+        function createTaskCard(task, listId, isCompleted) {
+            const list = document.getElementById(`list-${listId}`);
+            if (!list) return;
+
+            const el = document.createElement('div');
+            el.className = `card ${isCompleted ? 'completed' : ''}`;
+            el.draggable = true;
+            el.id = task.id;
+            el.dataset.taskId = task.id;
+
+            const today = getLocalISOString(new Date());
+            const isBacklog = listId === 'outstanding';
+            const isOverdue = !isBacklog && task.taskInfo.scheduleDate && task.taskInfo.scheduleDate < today && !isCompleted;
+
+            // Clean markdown - remove task checkbox markers
+            let cleanMarkdown = task.markdown
+                .replace(/^- \[ \] /, '')
+                .replace(/^- \[\/\] /, '')
+                .replace(/^- \[x\] /, '')
+                .replace(/^- /, '')
+                .trim();
+
+            const renderedContent = marked.parse(cleanMarkdown);
+
+            // Format the date nicely
+            const formattedDate = formatDate(task.taskInfo.scheduleDate);
+
+            // Build meta text with formatted date
+            let metaHTML = '';
+            if (isBacklog && !task.taskInfo.scheduleDate) {
+                metaHTML = `<span class="date-badge">Inbox</span>`;
+            } else if (isOverdue) {
+                metaHTML = `<span class="overdue-badge">Overdue: ${formattedDate}</span>`;
+            } else {
+                metaHTML = `<span class="date-badge">${formattedDate}</span>`;
+            }
+
+            el.innerHTML = `
+                <div class="card-header">
+                    <div class="checkbox ${isCompleted ? 'checked' : ''}" onclick="toggleTask('${task.id}', event)"></div>
+                    <div class="card-content" onclick="openTaskInCraft('${task.id}', event)">${renderedContent}</div>
+                    <button class="edit-btn" onclick="enterEditMode('${task.id}', event)" title="Edit task">✎</button>
+                    <button class="delete-btn" onclick="deleteTask('${task.id}', event)" title="Delete task">🗑️</button>
+                </div>
+                <div class="card-meta">
+                    ${metaHTML}
+                </div>
+            `;
+
+            el.ondragstart = (ev) => {
+                ev.dataTransfer.setData("text/plain", task.id);
+                ev.dataTransfer.effectAllowed = "move";
+                el.classList.add('dragging');
+            };
+            el.ondragend = () => {
+                el.classList.remove('dragging');
+                removePlaceholder();
+            };
+
+            // Hover tracking for delete key
+            el.onmouseenter = () => { HOVERED_TASK_ID = task.id; };
+            el.onmouseleave = () => { if (HOVERED_TASK_ID === task.id) HOVERED_TASK_ID = null; };
+
+            if (isCompleted) {
+                list.appendChild(el);
+            } else {
+                const firstCompleted = Array.from(list.children).find(c => c.classList.contains('completed'));
+                if (firstCompleted) {
+                    list.insertBefore(el, firstCompleted);
+                } else {
+                    list.appendChild(el);
+                }
+            }
+        }
+
+        // --- INTERACTION LOGIC ---
+
+        function toggleExpand(taskId, event) {
+            event.stopPropagation();
+            event.preventDefault();
+
+            const expandedContent = document.getElementById(`expanded-${taskId}`);
+            const button = event.target;
+
+            if (expandedContent.classList.contains('visible')) {
+                expandedContent.classList.remove('visible');
+                button.textContent = 'Show more';
+            } else {
+                expandedContent.classList.add('visible');
+                button.textContent = 'Show less';
+            }
+        }
+
+        function getLocalISOString(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'No Date';
+
+            const date = new Date(dateString + 'T00:00:00');
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+            const dayOfWeek = days[date.getDay()];
+            const day = date.getDate();
+            const month = months[date.getMonth()];
+
+            // Add ordinal suffix (1st, 2nd, 3rd, 4th, etc.)
+            let suffix = 'th';
+            if (day === 1 || day === 21 || day === 31) suffix = 'st';
+            else if (day === 2 || day === 22) suffix = 'nd';
+            else if (day === 3 || day === 23) suffix = 'rd';
+
+            return `${dayOfWeek}, ${day}${suffix} ${month}`;
+        }
+
+        function openTaskInCraft(taskId, event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            // Craft deep link format with spaceId
+            const deepLink = SPACE_ID
+                ? `craftdocs://open?blockId=${taskId}&spaceId=${SPACE_ID}`
+                : `craftdocs://open?blockId=${taskId}`;
+
+            // Use iframe approach - most reliable across browsers
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = deepLink;
+            document.body.appendChild(iframe);
+
+            // Clean up after a short delay
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+            }, 100);
+        }
+
+        async function toggleTask(taskId, event) {
+            event.stopPropagation();
+
+            const task = TASKS_CACHE.find(t => t.id === taskId);
+            if (!task) return;
+
+            const isDone = task.taskInfo.state === 'done';
+            const newState = isDone ? 'todo' : 'done';
+
+            task.taskInfo.state = newState;
+            if (newState === 'done') {
+                task.markdown = task.markdown.replace(/^- \[ \]/, '- [x]');
+            } else {
+                task.markdown = task.markdown.replace(/^- \[x\]/, '- [ ]');
+            }
+
+            renderBoard();
+
+            const BASE_URL = getBaseUrl();
+            try {
+                const payload = {
+                    tasksToUpdate: [{
+                        id: taskId,
+                        taskInfo: { state: newState }
+                    }]
+                };
+
+                await fetch(`${BASE_URL}/tasks`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${API_TOKEN}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function deleteTask(taskId, event) {
+            if (event) event.stopPropagation();
+
+            // Remove from cache immediately for responsive UI
+            const index = TASKS_CACHE.findIndex(t => t.id === taskId);
+            if (index > -1) {
+                TASKS_CACHE.splice(index, 1);
+            }
+
+            if (HOVERED_TASK_ID === taskId) HOVERED_TASK_ID = null;
+
+            renderBoard();
+
+            const BASE_URL = getBaseUrl();
+            try {
+                await fetch(`${BASE_URL}/tasks`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${API_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        idsToDelete: [taskId]
+                    })
+                });
+            } catch (err) {
+                console.error('Error deleting task:', err);
+                alert('Failed to delete task from Craft');
+                initBoard(); // Refresh to restore from server
+            }
+        }
+
+        // --- DRAG & DROP HANDLING ---
+
+        let placeholder = document.createElement('div');
+        placeholder.className = 'placeholder';
+        let lastDragOver = 0;
+
+        function allowDrop(ev, listId) {
+            ev.preventDefault();
+            ev.dataTransfer.dropEffect = "move";
+
+            const now = Date.now();
+            if (now - lastDragOver < 30) return;
+            lastDragOver = now;
+
+            const list = document.getElementById(`list-${listId}`);
+            const draggingItem = document.querySelector('.dragging');
+            if (!draggingItem) return;
+
+            const afterElement = getDragAfterElement(list, ev.clientY);
+
+            // Only update DOM if position changed (Optimization)
+            const currentNext = placeholder.nextElementSibling;
+            if (currentNext === afterElement) return;
+
+            if (afterElement == null) {
+                list.appendChild(placeholder);
+            } else {
+                list.insertBefore(placeholder, afterElement);
+            }
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.card:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function removePlaceholder() {
+            if (placeholder.parentNode) {
+                placeholder.parentNode.removeChild(placeholder);
+            }
+        }
+
+        async function dropInColumn(ev, newColId) {
+            ev.preventDefault();
+
+            const afterElement = placeholder.nextElementSibling;
+            removePlaceholder();
+
+            const taskId = ev.dataTransfer.getData("text/plain");
+            if (!taskId) return;
+
+            // Find original column
+            const task = TASKS_CACHE.find(t => t.id === taskId);
+            if (!task) return;
+
+            // Prevent moving daily note tasks to inbox (API limitation)
+            const isMovingToInbox = newColId === 'inbox';
+            const isFromDailyNote = task.location && task.location.type === 'dailyNote';
+
+            if (isMovingToInbox && isFromDailyNote) {
+                alert('Cannot move tasks from daily notes to Inbox.\n\nAPI Limitation: Tasks in daily notes cannot be moved back to Inbox. The task will become orphaned and disappear from all views.\n\nTip: Delete the task instead if no longer needed, or reschedule it to a different date.');
+                renderBoard(); // Refresh to restore original state
+                return;
+            }
+
+            // Show date picker when dragging to future column
+            if (newColId === 'future') {
+                openDatePicker(async (selectedDate) => {
+                    await processDrop(taskId, newColId, afterElement, selectedDate);
+                });
+                return;
+            }
+
+            await processDrop(taskId, newColId, afterElement, null);
+        }
+
+        async function processDrop(taskId, newColId, afterElement, overrideDate) {
+            // 1. Reorder Locally
+            const taskIndex = TASKS_CACHE.findIndex(t => t.id === taskId);
+            if (taskIndex === -1) return;
+            const [task] = TASKS_CACHE.splice(taskIndex, 1);
+
+            let newCacheIndex = TASKS_CACHE.length;
+
+            if (afterElement && afterElement.classList.contains('card')) {
+                const afterTaskId = afterElement.dataset.taskId;
+                const afterTaskIndex = TASKS_CACHE.findIndex(t => t.id === afterTaskId);
+                if (afterTaskIndex !== -1) {
+                    newCacheIndex = afterTaskIndex;
+                }
+            }
+
+            TASKS_CACHE.splice(newCacheIndex, 0, task);
+
+            // 2. Update Date
+            await moveTask(taskId, newColId, false, overrideDate);
+
+            // 3. Re-render
+            renderBoard();
+        }
+
+        async function moveTask(taskId, newColId, shouldRender = true, overrideDate = null) {
+            const task = TASKS_CACHE.find(t => t.id === taskId);
+            if (!task) return;
+
+            const today = getLocalISOString(new Date());
+            let newDate = null;
+
+            if (overrideDate) {
+                newDate = overrideDate;
+            } else if (IS_SEVEN_DAY_VIEW) {
+                if (newColId === 'inbox') {
+                    newDate = null;
+                } else if (newColId === 'backlog') {
+                    // Keep existing date for backlog (it's overdue)
+                    newDate = task.taskInfo.scheduleDate;
+                } else if (newColId === 'future') {
+                    const d = new Date();
+                    d.setDate(d.getDate() + 8);
+                    newDate = getLocalISOString(d);
+                } else {
+                    newDate = newColId;
+                }
+            } else {
+                if (newColId === 'today') {
+                    newDate = today;
+                } else if (newColId === 'inbox') {
+                    newDate = null;
+                } else if (newColId === 'backlog') {
+                    // Keep existing date for backlog (it's overdue)
+                    newDate = task.taskInfo.scheduleDate;
+                } else if (newColId === 'future') {
+                    const d = new Date();
+                    d.setDate(d.getDate() + 1);
+                    newDate = getLocalISOString(d);
+                }
+            }
+
+            const dateChanged = task.taskInfo.scheduleDate !== newDate;
+
+            if (dateChanged) {
+                const BASE_URL = getBaseUrl();
+                try {
+                    // Update task scheduleDate property in cache
+                    task.taskInfo.scheduleDate = newDate;
+
+                    // Use different API endpoints depending on task location and target
+                    const isFromDailyNote = task.location && task.location.type === 'dailyNote';
+                    const isTargetDailyNote = newDate !== null;
+
+                    if (isFromDailyNote && isTargetDailyNote) {
+                        // Use /blocks/move to physically move between daily notes
+                        const payload = {
+                            blockIds: [taskId],
+                            position: {
+                                position: "end",
+                                date: newDate
+                            }
+                        };
+
+                        await fetch(`${BASE_URL}/blocks/move`, {
+                            method: 'PUT',
+                            headers: { 'Authorization': `Bearer ${API_TOKEN}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                    } else {
+                        // Use /tasks for inbox tasks or when changing scheduleDate only
+                        const taskUpdate = { id: taskId };
+
+                        if (newDate !== null) {
+                            taskUpdate.taskInfo = { scheduleDate: newDate };
+                        } else {
+                            taskUpdate.taskInfo = {};
+                        }
+
+                        const payload = {
+                            tasksToUpdate: [taskUpdate]
+                        };
+
+                        await fetch(`${BASE_URL}/tasks`, {
+                            method: 'PUT',
+                            headers: { 'Authorization': `Bearer ${API_TOKEN}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+
+            if (shouldRender) renderBoard();
+        }
+
+        // --- INLINE EDITING ---
+
+        function enterEditMode(taskId, event) {
+            event.stopPropagation();
+            event.preventDefault();
+
+            const task = TASKS_CACHE.find(t => t.id === taskId);
+            if (!task) return;
+
+            // Get the card content div
+            const cardElement = document.getElementById(taskId);
+            if (!cardElement) return;
+
+            const contentDiv = cardElement.querySelector('.card-content');
+            const editBtn = cardElement.querySelector('.edit-btn');
+
+            if (!contentDiv || !editBtn) return;
+
+            // Hide edit button
+            editBtn.style.display = 'none';
+
+            // Get clean markdown (without checkbox markers)
+            let cleanMarkdown = task.markdown
+                .replace(/^- \[ \] /, '')
+                .replace(/^- \[\/\] /, '')
+                .replace(/^- \[x\] /, '')
+                .replace(/^- /, '')
+                .trim();
+
+            // Replace content with textarea
+            const textarea = document.createElement('textarea');
+            textarea.className = 'inline-edit-input';
+            textarea.value = cleanMarkdown;
+            textarea.rows = 2;
+
+            // Store original content for ESC cancel
+            textarea.dataset.originalContent = cleanMarkdown;
+
+            contentDiv.replaceWith(textarea);
+
+            // Focus and select all
+            textarea.focus();
+            textarea.select();
+
+            // Auto-resize textarea
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+
+            textarea.addEventListener('input', function () {
+                this.style.height = 'auto';
+                this.style.height = this.scrollHeight + 'px';
+            });
+
+            // Handle keyboard events
+            textarea.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    saveInlineEdit(taskId, textarea.value);
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelInlineEdit(taskId);
+                }
+            });
+
+            // Save on blur
+            textarea.addEventListener('blur', function () {
+                // Small delay to allow click events to fire
+                setTimeout(() => {
+                    if (document.activeElement !== textarea) {
+                        saveInlineEdit(taskId, textarea.value);
+                    }
+                }, 100);
+            });
+        }
+
+        function cancelInlineEdit(taskId) {
+            renderBoard();
+        }
+
+        async function saveInlineEdit(taskId, newContent) {
+            const task = TASKS_CACHE.find(t => t.id === taskId);
+            if (!task) return;
+
+            const trimmedContent = newContent.trim();
+            if (!trimmedContent) {
+                alert('Task content cannot be empty');
+                renderBoard();
+                return;
+            }
+
+            // Get current completion state
+            const isCompleted = task.taskInfo?.state === 'done' || task.markdown.startsWith('- [x]');
+            const checkboxMarker = isCompleted ? '- [x] ' : '- [ ] ';
+
+            // Update local cache with new markdown
+            task.markdown = checkboxMarker + trimmedContent;
+
+            // Re-render immediately for responsive UI
+            renderBoard();
+
+            // Update via API
+            const BASE_URL = getBaseUrl();
+            try {
+                showLoading(true);
+
+                const response = await fetch(`${BASE_URL}/blocks`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${API_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        blocks: [{
+                            id: taskId,
+                            markdown: task.markdown
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API Error Response:', errorText);
+                    throw new Error(`API Error: ${response.status}`);
+                }
+
+                console.log('Task updated successfully');
+
+            } catch (error) {
+                console.error('Error updating task:', error);
+                alert('Failed to update task. Please try again.');
+                // Refresh to get server state
+                initBoard();
+            } finally {
+                showLoading(false);
+            }
+        }
+    </script>
+</body>
+
+</html>
