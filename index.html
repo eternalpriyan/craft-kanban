@@ -292,6 +292,8 @@
 
         .column {
             flex: 0 0 320px;
+            min-width: 320px;
+            max-width: 320px;
             background-color: var(--column-bg);
             border-radius: 8px;
             padding: 20px;
@@ -307,8 +309,9 @@
         /* Collapsed column state - narrow vertical bar */
         .column.column-collapsed {
             flex: 0 0 60px;
-            padding: 20px 10px;
             min-width: 60px;
+            max-width: 60px;
+            padding: 20px 10px;
             overflow: hidden;
             transition: flex 0.4s cubic-bezier(0.4, 0, 0.2, 1),
                         padding 0.4s cubic-bezier(0.4, 0, 0.2, 1);
