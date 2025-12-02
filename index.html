@@ -16,6 +16,9 @@
     <!-- Markdown Parser -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
+    <!-- HTML Sanitizer for XSS Protection -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+
     <!-- Drag and Drop Polyfill -->
     <script src="https://unpkg.com/mobile-drag-drop/index.min.js"></script>
     <script>
@@ -1761,13 +1764,11 @@
                 if (!response.ok) throw new Error(`API Error: ${response.status}`);
 
                 const result = await response.json();
-                console.log('Note created:', result);
 
                 // Close modal
                 closeAddModal();
 
             } catch (error) {
-                console.error('Error creating note:', error);
                 alert('Failed to create note. Please try again.');
             } finally {
                 showLoading(false);
@@ -1910,8 +1911,6 @@
                 });
 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('API Error:', errorText);
                     throw new Error(`API Error: ${response.status}`);
                 }
 
@@ -1923,8 +1922,7 @@
                 initBoard(); // Refresh board
 
             } catch (error) {
-                console.error('Error creating task:', error);
-                alert('Failed to create task. Check console for details.');
+                alert('Failed to create task. Please try again.');
             } finally {
                 showLoading(false);
             }
@@ -2048,22 +2046,6 @@
 
                 const allTasks = [...(active.items || []), ...(upcoming.items || []), ...(inbox.items || []), ...(logbook.items || [])];
 
-                // DEBUG: Log complete task object structure
-                console.log('=== FULL TASK STRUCTURE DEBUG ===');
-                console.log('Total tasks:', allTasks.length);
-                if (allTasks.length > 0) {
-                    console.log('First task (complete object):', allTasks[0]);
-                    console.log('All properties:', Object.keys(allTasks[0]));
-
-                    // Look for any task that might have subtasks
-                    const taskWithContent = allTasks.find(t => t.content && t.content.length > 1);
-                    if (taskWithContent) {
-                        console.log('Task with multiple content items:', taskWithContent);
-                        console.log('Content array:', taskWithContent.content);
-                    }
-                }
-                console.log('=== END DEBUG ===');
-
                 // Deduplicate tasks (API sometimes returns duplicates across scopes)
                 const seen = new Set();
                 TASKS_CACHE = allTasks.filter(item => {
@@ -2075,7 +2057,6 @@
                 renderBoard();
 
             } catch (error) {
-                console.error(error);
                 alert("Error connecting to Craft. Please check your ID and internet connection.");
             } finally {
                 showLoading(false);
@@ -2642,7 +2623,7 @@
                 .replace(/^- /, '')
                 .trim();
 
-            const renderedContent = marked.parse(cleanMarkdown);
+            const renderedContent = DOMPurify.sanitize(marked.parse(cleanMarkdown));
 
             // Format the date nicely
             const formattedDate = formatDate(task.taskInfo.scheduleDate);
@@ -2810,7 +2791,8 @@
                     body: JSON.stringify(payload)
                 });
             } catch (err) {
-                console.error(err);
+                alert('Failed to update task status. Refreshing...');
+                initBoard();
             }
         }
 
@@ -2840,7 +2822,6 @@
                     })
                 });
             } catch (err) {
-                console.error('Error deleting task:', err);
                 alert('Failed to delete task from Craft');
                 initBoard(); // Refresh to restore from server
             }
@@ -3122,7 +3103,9 @@
                     }
 
                 } catch (err) {
-                    console.error(err);
+                    alert('Failed to move task. Refreshing...');
+                    initBoard();
+                    return;
                 }
             }
 
@@ -3249,15 +3232,10 @@
                 });
 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('API Error Response:', errorText);
                     throw new Error(`API Error: ${response.status}`);
                 }
 
-                console.log('Task updated successfully');
-
             } catch (error) {
-                console.error('Error updating task:', error);
                 alert('Failed to update task. Please try again.');
                 // Refresh to get server state
                 initBoard();
