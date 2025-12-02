@@ -36,9 +36,9 @@ A beautiful, minimalist Kanban board for managing your Craft tasks directly from
 
 ## Setup
 
-1. Open `index.html` in your browser
+1. Open `index.html` in your browser (or visit the hosted version)
 2. Enter your Craft Share Link (from a Craft document with guest access enabled)
-3. Enter your Space ID (found in your Craft URL)
+3. Enter a Deep Link from any Craft document (Share → Export as → Advanced → Copy Deep Link)
 4. Start managing your tasks!
 
 ## Craft API Limitations
