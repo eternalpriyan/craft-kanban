@@ -4,19 +4,35 @@ A beautiful, minimalist Kanban board for managing your Craft tasks directly from
 
 ## Features
 
-- **Two Views**: Switch between Standard and 7-Day Week view with one-click toggle button (V key or ☰/▦ button)
+### Views
+- **Standard View**: 4 columns - Inbox | Backlog | Today | Future
+- **7-Day Week View**: Full week layout with date columns (V key or ☰/▦ button to toggle)
+- **Focus View**: Distraction-free mode showing only today's tasks (F key to toggle)
+- **Week Navigation**: Browse past/future weeks in 7-day view with ← → buttons and Today button
+
+### Columns
 - **Smart Columns**:
-  - **Backlog** - Overdue tasks (collapsed by default to save space)
   - **Inbox** - Unscheduled tasks (collapsible)
+  - **Backlog** - Overdue tasks (collapsed by default)
   - **Today/Dates** - Current and upcoming tasks
   - **Future** - Tasks beyond the current view
-- **Collapsible Columns**: Click column headers to collapse/expand Backlog and Inbox
-- **Drag & Drop**: Easily move tasks between columns and dates
-- **Quick Add**: Spacebar for quick notes, Shift+Space for tasks
-- **Keyboard Shortcuts**: V to toggle views, Delete/Backspace to remove tasks
+- **Collapsible Columns**: Click headers to collapse/expand
+- **Column Toggles**: Use 1-9, 0 keys to toggle individual columns; A for smart toggle all
+- **Auto-Expand on Drag**: Collapsed columns expand when dragging tasks over them
+
+### Task Management
+- **Drag & Drop**: Move tasks between columns and dates
+- **Quick Note**: Spacebar - append timestamped entry to today's daily note
+- **Add Task**: Shift+Space - create Inbox or Daily Note task with optional date
+- **Inline Editing**: Click ✎ button to edit task content in place
+- **Task Deletion**: Hover + Delete key, or click 🗑️ button
+- **Task Type Toggle**: Choose between Inbox and Daily Note when creating tasks
+
+### Customization
 - **Theme Support**: Dark and light mode
-- **Week Customization**: Start your week on Sunday or Monday (7-day view)
-- **Smart Date Picker**: Quick buttons for Today, Tomorrow, and Next Week
+- **Week Start**: Sunday or Monday (configurable in settings)
+- **Custom Board Name**: Click title to rename
+- **Smart Date Picker**: Quick buttons for Today, Tomorrow, Next Week
 
 ## Setup
 
@@ -157,24 +173,54 @@ The Kanban board respects this architectural split. Understanding it helps you w
 
 ## Keyboard Shortcuts
 
+### Views
 - **V**: Toggle between Standard and 7-Day views
+- **F**: Toggle Focus view (distraction-free, today only)
+
+### Task Actions
 - **Space**: Open quick note modal
 - **Shift + Space**: Open add task modal
 - **Enter**: Submit in modals (Shift+Enter for new line)
 - **Escape**: Close modals
-- **Delete/Backspace**: Delete hovered task
-- **Hover over task**: Required before using Delete/Backspace
+- **Delete/Backspace**: Delete hovered task (hover first)
+
+### Column Controls
+- **1-9, 0**: Toggle individual columns (left to right)
+- **A**: Smart toggle - close all except Today, or open all
+
+### Help
+- **?**: Show keyboard shortcuts reference
 
 ## Tips
 
-- Press **V** or click the ☰/▦ button to quickly switch between Standard and 7-Day views
-- **Click Backlog/Inbox headers** to collapse them and save screen space
-- Leave the due date empty when creating tasks to send them directly to Inbox
-- **Backlog shows overdue tasks** - tasks with past dates automatically appear here
-- Use the quick date buttons (Today, Tomorrow, Next Week) for faster scheduling
+- Press **V** to toggle views, **F** for focus mode when you need to concentrate
+- **Click column headers** to collapse/expand - great for reducing visual noise
+- Use **A** key to quickly collapse everything except Today
+- Leave due date empty when creating tasks to send them to Inbox
+- **Backlog shows overdue tasks** - past-dated tasks appear here automatically
+- Use quick date buttons (Today, Tomorrow, Next Week) for faster scheduling
 - Drag tasks to "Future" column to trigger the date picker
-- **7-Day view shows full day names** like "Sunday, 30th Nov" for better readability
-- The view toggle also remains available in the settings menu (⚙️)
+- In 7-day view, use **← →** buttons to browse past/future weeks
+- Press **?** anytime to see all keyboard shortcuts
+- **Click ✎** on any task to edit its content inline
+
+## Roadmap
+
+### Phase 1: Web Enhancements
+- **Tag-based Columns** - Dynamic columns based on #tags in task content
+- **Month View** - Calendar grid showing task distribution across the month
+- **Time Blocking** - Associate tasks with specific time slots within days
+
+### Phase 2: Productivity Tools
+- **Pomodoro Timer** - Built-in timer tied to active task
+- **Time Tracking** - Start/stop timer per task with daily/weekly summaries
+- **Project View** - Group tasks by source document
+
+### Phase 3: External Integrations
+- **Calendar Sync** - Show Google/Apple Calendar events alongside tasks
+
+### Phase 4: Native Platform
+- **iOS App** - Native app with widgets and notifications
 
 ## Support
 
