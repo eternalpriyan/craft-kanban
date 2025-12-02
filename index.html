@@ -934,6 +934,96 @@
             margin-bottom: 15px;
             margin-top: 0;
         }
+
+        /* Hotkey Reference Modal */
+        .hotkey-modal {
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            text-align: left;
+        }
+
+        .hotkey-modal h3 {
+            margin-top: 0;
+            font-family: var(--font-serif);
+            font-weight: 400;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .hotkey-section {
+            margin-bottom: 25px;
+        }
+
+        .hotkey-section h4 {
+            font-family: var(--font-sans);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .hotkey-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--column-bg);
+        }
+
+        .hotkey-item:last-child {
+            border-bottom: none;
+        }
+
+        .hotkey-desc {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .hotkey-key {
+            background: var(--column-bg);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            color: var(--text-secondary);
+            border: 1px solid var(--input-border);
+            white-space: nowrap;
+        }
+
+        .version-info {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--header-border);
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .version-info .version-number {
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+
+        .author-links {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .author-links a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+
+        .author-links a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 
@@ -966,6 +1056,7 @@
                     Task</button>
                 <button class="quick-note-btn" onclick="openAddModal()" title="Add Quick Note (Spacebar)">+
                     Note</button>
+                <button class="quick-note-btn" onclick="openHotkeyModal()" title="Keyboard shortcuts (?)">?</button>
                 <div style="position: relative;">
                     <button class="settings-btn" onclick="toggleSettings()">⚙️</button>
                     <div class="settings-menu" id="settingsMenu">
@@ -1007,13 +1098,8 @@
     <div class="board" id="boardContainer">
     </div>
 
-    <footer>
-        <div>
-            by Priyan Nithya (<a href="mailto:priyan@priyan.yoga">priyan@priyan.yoga</a>)
-        </div>
-        <div>
-            <a href="https://buymeacoffee.com/npsoy" target="_blank">☕ Buy me a coffee</a>
-        </div>
+    <footer style="display: none;">
+        <!-- Footer removed - version and author info now in hotkey reference (press ?) -->
     </footer>
 
     <!-- Add Quick Note Modal -->
@@ -1072,6 +1158,73 @@
                     style="flex: 1; padding: 12px; background: var(--column-bg); color: var(--text-primary); border: 1px solid var(--input-border); border-radius: 6px; cursor: pointer; font-size: 14px;">
                     Cancel
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hotkey Reference Modal -->
+    <div class="modal-overlay" id="hotkeyModal">
+        <div class="modal hotkey-modal">
+            <button class="modal-close-btn" onclick="closeHotkeyModal()" title="Close (Esc)">×</button>
+            <h3>Keyboard Shortcuts</h3>
+
+            <div class="hotkey-section">
+                <h4>Task Management</h4>
+                <div class="hotkey-item">
+                    <span class="hotkey-desc">Add quick note to today's daily note</span>
+                    <span class="hotkey-key">Space</span>
+                </div>
+                <div class="hotkey-item">
+                    <span class="hotkey-desc">Add new task with optional date</span>
+                    <span class="hotkey-key">Shift + Space</span>
+                </div>
+                <div class="hotkey-item">
+                    <span class="hotkey-desc">Delete hovered task</span>
+                    <span class="hotkey-key">Delete / Backspace</span>
+                </div>
+            </div>
+
+            <div class="hotkey-section">
+                <h4>View Navigation</h4>
+                <div class="hotkey-item">
+                    <span class="hotkey-desc">Toggle between standard and 7-day view</span>
+                    <span class="hotkey-key">V</span>
+                </div>
+            </div>
+
+            <div class="hotkey-section">
+                <h4>Column Management</h4>
+                <div class="hotkey-item">
+                    <span class="hotkey-desc">Toggle column expand/collapse (left to right)</span>
+                    <span class="hotkey-key">1 - 9, 0</span>
+                </div>
+                <div class="hotkey-item">
+                    <span class="hotkey-desc">Toggle: close all (except today) ↔ open all</span>
+                    <span class="hotkey-key">A</span>
+                </div>
+            </div>
+
+            <div class="hotkey-section">
+                <h4>General</h4>
+                <div class="hotkey-item">
+                    <span class="hotkey-desc">Close any modal</span>
+                    <span class="hotkey-key">Esc</span>
+                </div>
+                <div class="hotkey-item">
+                    <span class="hotkey-desc">Show this help</span>
+                    <span class="hotkey-key">?</span>
+                </div>
+            </div>
+
+            <div class="version-info">
+                <div>
+                    <strong>Craft Kanban</strong>
+                    <span class="version-number">v1.0.0</span>
+                </div>
+                <div class="author-links">
+                    <div>by Priyan Nithya (<a href="mailto:priyan@priyan.yoga">priyan@priyan.yoga</a>)</div>
+                    <div><a href="https://buymeacoffee.com/npsoy" target="_blank">☕ Buy me a coffee</a></div>
+                </div>
             </div>
         </div>
     </div>
@@ -1151,6 +1304,10 @@
                     if (taskModal.style.display === 'flex') {
                         closeAddTaskModal();
                     }
+                    const hotkeyModal = document.getElementById('hotkeyModal');
+                    if (hotkeyModal && hotkeyModal.style.display === 'flex') {
+                        closeHotkeyModal();
+                    }
                 }
 
                 // V key to toggle view - but not when typing in input/textarea
@@ -1160,6 +1317,45 @@
                     event.target.tagName !== 'TEXTAREA') {
                     event.preventDefault();
                     toggleViewDirect();
+                }
+
+                // Number keys 1-0 to toggle columns (left-to-right)
+                if ((event.key >= '1' && event.key <= '9') || event.key === '0') {
+                    if (!event.target.matches('input, textarea, [contenteditable="true"]') &&
+                        event.target.tagName !== 'INPUT' &&
+                        event.target.tagName !== 'TEXTAREA') {
+
+                        event.preventDefault();
+
+                        const columns = document.querySelectorAll('.column');
+                        const keyIndex = event.key === '0' ? 9 : parseInt(event.key) - 1;
+
+                        if (keyIndex < columns.length) {
+                            const targetColumn = columns[keyIndex];
+                            const colId = targetColumn.dataset.colId;
+                            toggleColumn(colId);
+                        }
+                    }
+                }
+
+                // A key: Smart toggle all columns
+                if (event.key === 'a' || event.key === 'A') {
+                    if (!event.target.matches('input, textarea, [contenteditable="true"]') &&
+                        event.target.tagName !== 'INPUT' &&
+                        event.target.tagName !== 'TEXTAREA') {
+                        event.preventDefault();
+                        smartToggleAll();
+                    }
+                }
+
+                // ? key to open hotkey reference
+                if (event.key === '?' || (event.shiftKey && event.key === '/')) {
+                    if (!event.target.matches('input, textarea, [contenteditable="true"]') &&
+                        event.target.tagName !== 'INPUT' &&
+                        event.target.tagName !== 'TEXTAREA') {
+                        event.preventDefault();
+                        openHotkeyModal();
+                    }
                 }
 
                 // Delete key handler
@@ -1187,6 +1383,15 @@
                 addTaskModal.addEventListener('click', function (event) {
                     if (event.target === this) {
                         closeAddTaskModal();
+                    }
+                });
+            }
+
+            const hotkeyModal = document.getElementById('hotkeyModal');
+            if (hotkeyModal) {
+                hotkeyModal.addEventListener('click', function (event) {
+                    if (event.target === this) {
+                        closeHotkeyModal();
                     }
                 });
             }
@@ -1426,6 +1631,16 @@
             datePickCallback = null;
         }
 
+        // --- HOTKEY REFERENCE MODAL FUNCTIONS ---
+
+        function openHotkeyModal() {
+            document.getElementById('hotkeyModal').style.display = 'flex';
+        }
+
+        function closeHotkeyModal() {
+            document.getElementById('hotkeyModal').style.display = 'none';
+        }
+
         function selectQuickDate(daysFromNow) {
             const date = new Date();
             date.setDate(date.getDate() + daysFromNow);
@@ -1548,6 +1763,44 @@
                 icon.textContent = '▶';
                 localStorage.setItem(`column_${colId}_collapsed`, 'true');
             }
+        }
+
+        function smartToggleAll() {
+            const columns = document.querySelectorAll('.column');
+
+            // Check if any non-today columns are expanded
+            let hasExpandedNonToday = false;
+            columns.forEach(column => {
+                const colId = column.dataset.colId;
+                const isToday = colId === 'today' ||
+                               column.querySelector('.column-header.today-column') !== null;
+                const isExpanded = !column.classList.contains('column-collapsed');
+
+                if (!isToday && isExpanded) {
+                    hasExpandedNonToday = true;
+                }
+            });
+
+            // If any non-today columns are expanded, close all (except today)
+            // Otherwise, open all
+            columns.forEach(column => {
+                const colId = column.dataset.colId;
+                const isToday = colId === 'today' ||
+                               column.querySelector('.column-header.today-column') !== null;
+                const isCollapsed = column.classList.contains('column-collapsed');
+
+                if (hasExpandedNonToday) {
+                    // Close all except today
+                    if (!isToday && !isCollapsed) {
+                        toggleColumn(colId);
+                    }
+                } else {
+                    // Open all
+                    if (isCollapsed) {
+                        toggleColumn(colId);
+                    }
+                }
+            });
         }
 
         function toggleViewDirect() {
