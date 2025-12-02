@@ -222,6 +222,14 @@ The Kanban board respects this architectural split. Understanding it helps you w
 ### Phase 4: Native Platform
 - **iOS App** - Native app with widgets and notifications
 
+## Security & Privacy
+
+- **100% client-side** - No server, no backend, runs entirely in your browser
+- **Open source** - Every line of code is readable and auditable
+- **No tracking** - Zero analytics, no third-party data collection
+- **Local storage only** - Your API credentials never leave your machine (only sent to Craft's API)
+- **Verify yourself** - Open browser DevTools → Network tab to confirm only `api.craft.do` calls
+
 ## Support
 
 This project was created for the Craft Winter Challenge. For issues or questions, please check the Craft documentation or community forums.
