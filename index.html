@@ -234,6 +234,43 @@
             border-color: var(--accent-color);
         }
 
+        /* Date Input Theming */
+        input[type="date"] {
+            color-scheme: light;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            border: 1px solid var(--input-border);
+            border-radius: 6px;
+            font-family: var(--font-sans);
+            accent-color: var(--accent-color);
+        }
+
+        input[type="date"]:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(217, 119, 87, 0.2);
+        }
+
+        [data-theme="dark"] input[type="date"] {
+            color-scheme: dark;
+        }
+
+        /* Style the calendar picker icon */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+            filter: var(--date-picker-filter, none);
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
+
+        [data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+
         /* Ticker Tape Navigation */
         .ticker-tape {
             display: flex;
@@ -452,6 +489,27 @@
             display: flex;
             align-items: flex-start;
             gap: 12px;
+            position: relative;
+        }
+
+        /* Task Action Buttons Container - Vertical Stack */
+        .task-actions {
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            background: var(--card-bg);
+            border-radius: 4px;
+            padding: 2px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .card:hover .task-actions {
+            opacity: 1;
         }
 
         /* Minimal Square Checkbox */
@@ -507,17 +565,12 @@
             border: none;
             color: var(--text-secondary);
             cursor: pointer;
-            font-size: 14px;
-            padding: 4px 6px;
-            border-radius: 4px;
+            font-size: 12px;
+            padding: 3px 6px;
+            border-radius: 3px;
             transition: all 0.2s;
-            opacity: 0;
-            margin-left: 8px;
-            flex-shrink: 0;
-        }
-
-        .card-header:hover .edit-btn {
-            opacity: 1;
+            white-space: nowrap;
+            line-height: 1;
         }
 
         .edit-btn:hover {
@@ -531,17 +584,12 @@
             border: none;
             color: var(--text-secondary);
             cursor: pointer;
-            font-size: 14px;
-            padding: 4px 6px;
-            border-radius: 4px;
+            font-size: 12px;
+            padding: 3px 6px;
+            border-radius: 3px;
             transition: all 0.2s;
-            opacity: 0;
-            margin-left: 4px;
-            flex-shrink: 0;
-        }
-
-        .card-header:hover .delete-btn {
-            opacity: 1;
+            white-space: nowrap;
+            line-height: 1;
         }
 
         .delete-btn:hover {
@@ -1126,7 +1174,7 @@
 
             <div class="menu-input-group" style="padding: 0; margin-bottom: 0;">
                 <label for="newTaskDate">Due Date (Optional)</label>
-                <input type="date" id="newTaskDate" style="width: 100%; padding: 10px;">
+                <input type="date" id="newTaskDate" style="width: 100%; padding: 10px; box-sizing: border-box;">
             </div>
         </div>
     </div>
@@ -1146,7 +1194,7 @@
             <!-- Date Input -->
             <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Or choose a specific date:</label>
             <input type="date" id="datePickerInput"
-                style="width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--bg-color); color: var(--text-primary); font-size: 14px;">
+                style="width: 100%; padding: 12px; margin-bottom: 20px; font-size: 14px; box-sizing: border-box;">
 
             <!-- Action Buttons -->
             <div style="display: flex; gap: 10px;">
@@ -2325,8 +2373,10 @@
                 <div class="card-header">
                     <div class="checkbox ${isCompleted ? 'checked' : ''}" onclick="toggleTask('${task.id}', event)"></div>
                     <div class="card-content" onclick="openTaskInCraft('${task.id}', event)">${renderedContent}</div>
-                    <button class="edit-btn" onclick="enterEditMode('${task.id}', event)" title="Edit task">✎</button>
-                    <button class="delete-btn" onclick="deleteTask('${task.id}', event)" title="Delete task">🗑️</button>
+                    <div class="task-actions">
+                        <button class="edit-btn" onclick="enterEditMode('${task.id}', event)" title="Edit task">✎</button>
+                        <button class="delete-btn" onclick="deleteTask('${task.id}', event)" title="Delete task">🗑️</button>
+                    </div>
                 </div>
                 <div class="card-meta">
                     ${metaHTML}
