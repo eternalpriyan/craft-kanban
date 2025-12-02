@@ -2534,7 +2534,15 @@
                 const date = task.taskInfo?.scheduleDate;
                 let targetId = '';
 
-                if (IS_SEVEN_DAY_VIEW) {
+                // Focus view uses standard logic (needs "today" column ID)
+                if (IS_FOCUS_VIEW) {
+                    // In focus view, only show today's tasks
+                    if (date === today) {
+                        targetId = 'today';
+                    } else {
+                        return; // Skip non-today tasks in focus view
+                    }
+                } else if (IS_SEVEN_DAY_VIEW) {
                     if (!date) {
                         // No date = Inbox
                         targetId = 'inbox';
