@@ -37,7 +37,7 @@ A beautiful, minimalist Kanban board for managing your Craft tasks directly from
 ## Setup
 
 1. Open `index.html` in your browser (or visit the hosted version)
-2. Enter your Daily Notes API Link (from Craft Settings → Daily Notes → API)
+2. Enter your Daily Notes API Link (Imagine tab → API for All Daily Notes → URL)
 3. Enter a Deep Link from any Craft document (Share → Export as → Advanced → Copy Deep Link)
 4. Start managing your tasks!
 
