@@ -1646,8 +1646,53 @@
             document.getElementById('datePickerInput').focus();
         }
 
+        function openBacklogDatePicker(callback) {
+            datePickCallback = callback;
+            const modal = document.getElementById('datePickerModal');
+            const dateInput = document.getElementById('datePickerInput');
+            const quickActionsDiv = modal.querySelector('[style*="grid"]'); // Select the quick actions grid div
+
+            // Set max date to today (prevent future dates)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            dateInput.max = getLocalISOString(today);
+
+            // Calculate default date based on view mode
+            let defaultDate = new Date();
+            if (IS_SEVEN_DAY_VIEW) {
+                // For 7-day view, default to last week
+                defaultDate.setDate(defaultDate.getDate() - 7);
+            } else {
+                // For standard view, default to yesterday
+                defaultDate.setDate(defaultDate.getDate() - 1);
+            }
+            dateInput.value = getLocalISOString(defaultDate);
+
+            // Hide quick action buttons
+            if (quickActionsDiv) {
+                quickActionsDiv.style.display = 'none';
+            }
+
+            // Show modal
+            modal.style.display = 'flex';
+            dateInput.focus();
+        }
+
         function closeDatePicker() {
-            document.getElementById('datePickerModal').style.display = 'none';
+            const modal = document.getElementById('datePickerModal');
+            const dateInput = document.getElementById('datePickerInput');
+            const quickActionsDiv = modal.querySelector('[style*="grid"]'); // Select the quick actions grid div
+
+            // Reset quick action buttons to visible
+            if (quickActionsDiv) {
+                quickActionsDiv.style.display = 'grid';
+            }
+
+            // Remove max date restriction
+            dateInput.removeAttribute('max');
+
+            // Close modal
+            modal.style.display = 'none';
             datePickCallback = null;
         }
 
@@ -2599,6 +2644,14 @@
                 return;
             }
 
+            // Show date picker when dragging to backlog column
+            if (newColId === 'backlog') {
+                openBacklogDatePicker(async (selectedDate) => {
+                    await processDrop(taskId, newColId, afterElement, selectedDate);
+                });
+                return;
+            }
+
             await processDrop(taskId, newColId, afterElement, null);
         }
 
@@ -2691,6 +2744,11 @@
                             headers: { 'Authorization': `Bearer ${API_TOKEN}`, 'Content-Type': 'application/json' },
                             body: JSON.stringify(payload)
                         });
+
+                        // Update the task's location.date to match the new scheduleDate
+                        if (task.location) {
+                            task.location.date = newDate;
+                        }
                     } else {
                         // Use /tasks for inbox tasks or when changing scheduleDate only
                         const taskUpdate = { id: taskId };
