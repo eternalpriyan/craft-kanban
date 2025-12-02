@@ -1493,21 +1493,6 @@
                     return true;
                 });
 
-                // Debug: Log completed tasks and their locations
-                const completedTasks = TASKS_CACHE.filter(t => t.taskInfo?.state === 'done' || t.markdown.startsWith('- [x]'));
-                console.log('=== COMPLETED TASKS DEBUG ===');
-                console.log('Total completed tasks:', completedTasks.length);
-                completedTasks.slice(0, 5).forEach((t, i) => {
-                    console.log(`Task ${i + 1}:`, {
-                        id: t.id,
-                        markdown: t.markdown.substring(0, 50),
-                        scheduleDate: t.taskInfo?.scheduleDate,
-                        location: t.location,
-                        state: t.taskInfo?.state
-                    });
-                });
-                console.log('=== END COMPLETED DEBUG ===');
-
                 renderBoard();
 
             } catch (error) {
@@ -1893,17 +1878,7 @@
 
                 if (!showCompleted && isCompleted) return;
 
-                // For completed tasks in 7-day view, use completion date if available
-                let effectiveDate = task.taskInfo?.scheduleDate;
-
-                if (isCompleted && IS_SEVEN_DAY_VIEW) {
-                    const completionDate = getTaskCompletionDate(task);
-                    if (completionDate) {
-                        effectiveDate = completionDate;
-                    }
-                }
-
-                const date = effectiveDate;
+                const date = task.taskInfo?.scheduleDate;
                 let targetId = '';
 
                 if (IS_SEVEN_DAY_VIEW) {
@@ -2004,15 +1979,7 @@
 
             // Build meta text with formatted date
             let metaHTML = '';
-            if (isCompleted) {
-                const completionDate = getTaskCompletionDate(task);
-                if (completionDate) {
-                    const formattedCompletionDate = formatDate(completionDate);
-                    metaHTML = `<span class="date-badge">✓ Completed: ${formattedCompletionDate}</span>`;
-                } else if (task.taskInfo.scheduleDate) {
-                    metaHTML = `<span class="date-badge">Scheduled: ${formattedDate}</span>`;
-                }
-            } else if (isBacklog && !task.taskInfo.scheduleDate) {
+            if (isBacklog && !task.taskInfo.scheduleDate) {
                 metaHTML = `<span class="date-badge">Inbox</span>`;
             } else if (isOverdue) {
                 metaHTML = `<span class="overdue-badge">Overdue: ${formattedDate}</span>`;
@@ -2142,28 +2109,22 @@
         function getTaskCompletionDate(task) {
             // Tier 1: Local tracking (most reliable)
             const localCompletion = getCompletionDate(task.id);
-            if (localCompletion) {
-                console.log(`Task ${task.id}: Using local completion date:`, localCompletion);
-                return localCompletion;
-            }
+            if (localCompletion) return localCompletion;
 
             // Tier 2: Infer from daily note location
             // The location structure varies - try multiple ways to extract the date
             if (task.location) {
                 // Check for dailyNote type with date
                 if (task.location.type === 'dailyNote' && task.location.date) {
-                    console.log(`Task ${task.id}: Using dailyNote location date:`, task.location.date);
                     return task.location.date;
                 }
                 // Also check if location has a date property directly
                 if (task.location.date) {
-                    console.log(`Task ${task.id}: Using location date:`, task.location.date);
                     return task.location.date;
                 }
             }
 
             // Tier 3: No completion date available
-            console.log(`Task ${task.id}: No completion date found`);
             return null;
         }
 
