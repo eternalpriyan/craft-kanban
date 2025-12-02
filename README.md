@@ -137,11 +137,23 @@ The Kanban board respects this architectural split. Understanding it helps you w
 
 ### Best Practices
 
-1. **Create in Inbox first**: When adding new tasks, leave the date empty so they go to Inbox
-2. **Schedule from Inbox**: Move tasks from Inbox to dates as you plan your day
-3. **Use Daily Notes for specifics**: If a task is deeply tied to a specific day's notes, create it directly in that daily note
-4. **Don't mix daily note tasks with Inbox**: A task can't be both places at once - moving a daily note task to Inbox isn't supported
-5. **Use the labels**: The "Inbox" and "Daily Note" labels on each card tell you exactly where to find it in Craft docs
+**Choose one workflow and stick with it:**
+
+**Option 1: Inbox-Based Workflow** (Recommended for task management)
+- Keep all tasks in Inbox and schedule them to dates from there
+- Don't create tasks directly in daily notes
+- Daily note tasks will be rare, making the "Daily Note" label useful when they do appear
+- Tasks stay in your central Inbox until you delete them, creating a clear archive
+
+**Option 2: Daily Note-Based Workflow** (Better for daily planning)
+- Create tasks directly in your daily note pages
+- Use the Kanban to see all daily notes and shuffle tasks between days
+- Keep Inbox mostly empty (only for incoming items needing triage)
+- Tasks are naturally scoped to the days they belong to
+
+**Don't mix workflows:** Having tasks split between Inbox and Daily Notes creates confusion about where things live and how to move them around. Pick the approach that fits your brain and stick with it.
+
+**Use the labels**: The "Inbox" and "Daily Note" labels on each card tell you exactly where to find it in Craft docs, which is especially helpful during the occasional cross-system task.
 
 ## Keyboard Shortcuts
 
