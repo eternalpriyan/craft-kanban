@@ -95,6 +95,54 @@ This Kanban board works within the constraints of the Craft API. Understanding t
 
 **Technical Detail**: The `/tasks` endpoint returns tasks with `location.type` of either `inbox` or `dailyNote` only. There is no `document` location type in the API response.
 
+## Understanding Inbox vs Daily Note Tasks
+
+Craft has two fundamentally different task systems that work differently on this Kanban board:
+
+### Inbox Tasks
+
+**What they are**: Tasks created in Craft's central Inbox with no date assigned.
+
+**How they work on the Kanban**:
+- Live in the "Inbox" column
+- When you drag them to a date column, their `scheduleDate` property is updated
+- The task **stays in Craft's Inbox** but gains a date
+- You can move them between any columns freely
+
+**Label on the board**: No label in Inbox column | "Inbox / [date]" in other columns
+
+**Best for**: Open-ended tasks, ideas, or things you'll tackle later
+
+### Daily Note Tasks
+
+**What they are**: Tasks or task blocks embedded inside daily note pages in Craft.
+
+**How they work on the Kanban**:
+- Live in their respective date columns (Monday, Tuesday, etc.)
+- When you drag them between date columns, the **entire task block physically moves** to the other day's note
+- Their `scheduleDate` property also updates to match
+- **Cannot be moved back to Inbox** (API limitation - see above)
+
+**Label on the board**: "Daily Note" in date columns | "Daily Note / [original date]" in Backlog/Future
+
+**Best for**: Tasks tied to specific days, daily planning, recurring routines
+
+### Why the Difference?
+
+This asymmetry exists because Craft's API treats these as separate systems:
+- **Inbox tasks** are centralized, date-able entities stored in the Tasks system
+- **Daily Note tasks** are markdown blocks embedded in document pages (the Daily Notes)
+
+The Kanban board respects this architectural split. Understanding it helps you work more intuitively with Craft.
+
+### Best Practices
+
+1. **Create in Inbox first**: When adding new tasks, leave the date empty so they go to Inbox
+2. **Schedule from Inbox**: Move tasks from Inbox to dates as you plan your day
+3. **Use Daily Notes for specifics**: If a task is deeply tied to a specific day's notes, create it directly in that daily note
+4. **Don't mix daily note tasks with Inbox**: A task can't be both places at once - moving a daily note task to Inbox isn't supported
+5. **Use the labels**: The "Inbox" and "Daily Note" labels on each card tell you exactly where to find it in Craft docs
+
 ## Keyboard Shortcuts
 
 - **V**: Toggle between Standard and 7-Day views
