@@ -1090,6 +1090,7 @@
         const TODAY = new Date();
         TODAY.setHours(0, 0, 0, 0);
         let HOVERED_TASK_ID = null;
+        let TASK_COMPLETIONS = {}; // In-memory cache of task completion dates
 
         // --- INITIALIZATION ---
 
@@ -1198,6 +1199,7 @@
             if (!API_ID || !SPACE_ID) {
                 document.getElementById('setupModal').style.display = 'flex';
             } else {
+                loadCompletionDates();
                 initBoard();
             }
         };
@@ -1876,7 +1878,17 @@
 
                 if (!showCompleted && isCompleted) return;
 
-                const date = task.taskInfo?.scheduleDate;
+                // For completed tasks in 7-day view, use completion date if available
+                let effectiveDate = task.taskInfo?.scheduleDate;
+
+                if (isCompleted && IS_SEVEN_DAY_VIEW) {
+                    const completionDate = getTaskCompletionDate(task);
+                    if (completionDate) {
+                        effectiveDate = completionDate;
+                    }
+                }
+
+                const date = effectiveDate;
                 let targetId = '';
 
                 if (IS_SEVEN_DAY_VIEW) {
@@ -1977,7 +1989,15 @@
 
             // Build meta text with formatted date
             let metaHTML = '';
-            if (isBacklog && !task.taskInfo.scheduleDate) {
+            if (isCompleted) {
+                const completionDate = getTaskCompletionDate(task);
+                if (completionDate) {
+                    const formattedCompletionDate = formatDate(completionDate);
+                    metaHTML = `<span class="date-badge">✓ Completed: ${formattedCompletionDate}</span>`;
+                } else if (task.taskInfo.scheduleDate) {
+                    metaHTML = `<span class="date-badge">Scheduled: ${formattedDate}</span>`;
+                }
+            } else if (isBacklog && !task.taskInfo.scheduleDate) {
                 metaHTML = `<span class="date-badge">Inbox</span>`;
             } else if (isOverdue) {
                 metaHTML = `<span class="overdue-badge">Overdue: ${formattedDate}</span>`;
@@ -2069,6 +2089,55 @@
             return `${dayOfWeek}, ${day}${suffix} ${month}`;
         }
 
+        // --- COMPLETION DATE TRACKING ---
+
+        function loadCompletionDates() {
+            const stored = localStorage.getItem('craft_task_completions');
+            TASK_COMPLETIONS = stored ? JSON.parse(stored) : {};
+            clearOldCompletions();
+        }
+
+        function getCompletionDate(taskId) {
+            return TASK_COMPLETIONS[taskId] || null;
+        }
+
+        function setCompletionDate(taskId, date) {
+            TASK_COMPLETIONS[taskId] = date;
+            localStorage.setItem('craft_task_completions', JSON.stringify(TASK_COMPLETIONS));
+        }
+
+        function clearOldCompletions() {
+            const ninetyDaysAgo = new Date();
+            ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+            const cutoffDate = getLocalISOString(ninetyDaysAgo);
+
+            let changed = false;
+            Object.keys(TASK_COMPLETIONS).forEach(taskId => {
+                if (TASK_COMPLETIONS[taskId] < cutoffDate) {
+                    delete TASK_COMPLETIONS[taskId];
+                    changed = true;
+                }
+            });
+
+            if (changed) {
+                localStorage.setItem('craft_task_completions', JSON.stringify(TASK_COMPLETIONS));
+            }
+        }
+
+        function getTaskCompletionDate(task) {
+            // Tier 1: Local tracking (most reliable)
+            const localCompletion = getCompletionDate(task.id);
+            if (localCompletion) return localCompletion;
+
+            // Tier 2: Infer from daily note location
+            if (task.location?.type === 'dailyNote' && task.location.date) {
+                return task.location.date;
+            }
+
+            // Tier 3: No completion date available
+            return null;
+        }
+
         function openTaskInCraft(taskId, event) {
             event.preventDefault();
             event.stopPropagation();
@@ -2102,8 +2171,14 @@
             task.taskInfo.state = newState;
             if (newState === 'done') {
                 task.markdown = task.markdown.replace(/^- \[ \]/, '- [x]');
+                // Record completion date
+                const today = getLocalISOString(new Date());
+                setCompletionDate(taskId, today);
             } else {
                 task.markdown = task.markdown.replace(/^- \[x\]/, '- [ ]');
+                // Clear completion date when unmarking
+                delete TASK_COMPLETIONS[taskId];
+                localStorage.setItem('craft_task_completions', JSON.stringify(TASK_COMPLETIONS));
             }
 
             renderBoard();
