@@ -1797,7 +1797,7 @@
                     id: dateStr,
                     title: title,
                     collapsible: true,
-                    defaultCollapsed: (dateStr !== today),  // Only today expanded by default
+                    defaultCollapsed: false,  // Show all date columns by default in 7-day view
                     isToday: (dateStr === today)  // Flag to identify today's column
                 });
             }
@@ -1881,11 +1881,6 @@
                 const date = task.taskInfo?.scheduleDate;
                 let targetId = '';
 
-                // Debug: Log where completed tasks are going
-                if (isCompleted && IS_SEVEN_DAY_VIEW) {
-                    console.log(`Completed task: ${task.id.substring(0, 8)}..., date: ${date}, markdown: ${task.markdown.substring(0, 30)}`);
-                }
-
                 if (IS_SEVEN_DAY_VIEW) {
                     if (!date) {
                         // No date = Inbox
@@ -1924,11 +1919,6 @@
                     }
                 }
 
-                // Debug: Log final placement
-                if (isCompleted && IS_SEVEN_DAY_VIEW) {
-                    console.log(`  → Placed in column: ${targetId}`);
-                }
-
                 createTaskCard(task, targetId, isCompleted);
 
                 counts[targetId] = (counts[targetId] || 0) + 1;
@@ -1962,15 +1952,7 @@
 
         function createTaskCard(task, listId, isCompleted) {
             const list = document.getElementById(`list-${listId}`);
-            if (!list) {
-                if (isCompleted && IS_SEVEN_DAY_VIEW) {
-                    console.log(`  ✗ List element not found for column: ${listId}`);
-                }
-                return;
-            }
-            if (isCompleted && IS_SEVEN_DAY_VIEW) {
-                console.log(`  ✓ Creating card in list: ${listId}`);
-            }
+            if (!list) return;
 
             const el = document.createElement('div');
             el.className = `card ${isCompleted ? 'completed' : ''}`;
