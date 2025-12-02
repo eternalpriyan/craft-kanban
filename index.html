@@ -273,6 +273,7 @@
 
         /* Ticker Tape Navigation */
         .ticker-tape {
+            position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -314,6 +315,32 @@
             font-weight: 500;
             min-width: 140px;
             text-align: center;
+        }
+
+        .ticker-today-btn {
+            position: absolute;
+            left: calc(50% + 130px);
+            background: none;
+            border: 1px solid var(--input-border);
+            border-radius: 14px;
+            padding: 4px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .ticker-today-btn:hover {
+            background-color: var(--column-bg);
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .ticker-today-btn.visible {
+            opacity: 1;
+            pointer-events: auto;
         }
 
         /* BOARD LAYOUT */
@@ -1234,6 +1261,7 @@
             <button class="ticker-btn" id="prevWeekBtn" onclick="shiftWeek(-1)">←</button>
             <span class="ticker-date" id="tickerDateRange">Nov 30 - Dec 6</span>
             <button class="ticker-btn" onclick="shiftWeek(1)">→</button>
+            <button class="ticker-today-btn" id="todayBtn" onclick="goToCurrentWeek()">Today</button>
         </div>
     </header>
 
@@ -2266,14 +2294,30 @@
             const rangeStr = `${start.toLocaleDateString('en-US', options)} - ${end.toLocaleDateString('en-US', options)}`;
             document.getElementById('tickerDateRange').innerText = rangeStr;
 
-            const currentStart = new Date(VIEW_START_DATE);
-            currentStart.setHours(0, 0, 0, 0);
+            // Previous week navigation is always enabled
+            document.getElementById('prevWeekBtn').disabled = false;
 
-            if (currentStart <= TODAY) {
-                document.getElementById('prevWeekBtn').disabled = true;
-            } else {
-                document.getElementById('prevWeekBtn').disabled = false;
+            // Show "Today" button if not viewing current week
+            const currentWeekStart = getCurrentWeekStart();
+            const todayBtn = document.getElementById('todayBtn');
+            if (todayBtn) {
+                const isCurrentWeek = VIEW_START_DATE.getTime() === currentWeekStart.getTime();
+                todayBtn.classList.toggle('visible', !isCurrentWeek);
             }
+        }
+
+        function getCurrentWeekStart() {
+            const d = new Date();
+            d.setHours(0, 0, 0, 0);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (IS_MONDAY_FIRST ? (day === 0 ? -6 : 1) : 0);
+            return new Date(d.setDate(diff));
+        }
+
+        function goToCurrentWeek() {
+            VIEW_START_DATE = getCurrentWeekStart();
+            updateTickerDate();
+            renderBoard();
         }
 
         // --- RENDERING LOGIC ---
