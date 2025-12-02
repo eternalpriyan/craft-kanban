@@ -876,7 +876,7 @@
             box-sizing: border-box;
         }
 
-        .modal button:not(.modal-close-btn) {
+        .modal button:not(.modal-close-btn):not(.toggle-btn):not(.quick-date-btn) {
             background: var(--accent-color);
             color: white;
             border: none;
@@ -887,7 +887,7 @@
             width: 100%;
         }
 
-        .modal button:not(.modal-close-btn):hover {
+        .modal button:not(.modal-close-btn):not(.toggle-btn):not(.quick-date-btn):hover {
             opacity: 0.9;
         }
 
@@ -981,6 +981,100 @@
             font-size: 12px;
             margin-bottom: 15px;
             margin-top: 0;
+        }
+
+        /* Task Input Row - textarea with toggle on right */
+        .task-input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .task-input-row textarea {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--input-border);
+            border-radius: 6px;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        .task-input-row textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        /* Task Type Toggle - Vertical pill style */
+        .task-type-toggle {
+            display: flex;
+            flex-direction: column;
+            background: var(--column-bg);
+            border-radius: 6px;
+            padding: 3px;
+            gap: 2px;
+        }
+
+        .task-type-toggle .toggle-btn {
+            padding: 6px 8px;
+            border: none;
+            outline: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 11px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+            font-family: var(--font-sans);
+            white-space: nowrap;
+            -webkit-appearance: none;
+            appearance: none;
+            flex: 1;
+        }
+
+        .task-type-toggle .toggle-btn:hover:not(.active) {
+            color: var(--text-primary);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .task-type-toggle .toggle-btn.active {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        /* Task Date Row - inline with label */
+        .task-date-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .task-date-row label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+
+        .task-date-row input[type="date"] {
+            flex: 1;
+            padding: 8px 10px;
+            border: 1px solid var(--input-border);
+            border-radius: 6px;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 14px;
+            max-width: 180px;
+        }
+
+        .task-date-row input[type="date"]:focus {
+            outline: none;
+            border-color: var(--accent-color);
         }
 
         /* Hotkey Reference Modal */
@@ -1167,14 +1261,21 @@
         <div class="modal add-modal">
             <button class="modal-close-btn" onclick="closeAddTaskModal()" title="Close (Esc)">×</button>
             <h3>Add New Task</h3>
-            <p class="help-text">Enter to submit, Shift+Enter for new line. Leave date empty for Inbox.</p>
+            <p class="help-text">Enter to submit, Shift+Enter for new line.</p>
 
-            <textarea id="newTaskInput" placeholder="What needs to be done?" rows="3" autofocus
-                style="width: 100%; padding: 12px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--bg-color); color: var(--text-primary); font-family: var(--font-sans); resize: vertical; margin-bottom: 15px;"></textarea>
+            <!-- Task input row with toggle on right -->
+            <div class="task-input-row">
+                <textarea id="newTaskInput" placeholder="What needs to be done?" rows="4" autofocus></textarea>
+                <div class="task-type-toggle" id="taskTypeSelector">
+                    <button type="button" class="toggle-btn active" data-value="inbox">Inbox</button>
+                    <button type="button" class="toggle-btn" data-value="dailyNote">Daily</button>
+                </div>
+            </div>
 
-            <div class="menu-input-group" style="padding: 0; margin-bottom: 0;">
-                <label for="newTaskDate">Due Date (Optional)</label>
-                <input type="date" id="newTaskDate" style="width: 100%; padding: 10px; box-sizing: border-box;">
+            <!-- Date Row - simple inline -->
+            <div class="task-date-row" id="taskDateRow">
+                <label id="taskDateLabel">Schedule for</label>
+                <input type="date" id="newTaskDate">
             </div>
         </div>
     </div>
@@ -1591,9 +1692,56 @@
 
         // --- ADD TASK MODAL FUNCTIONS ---
 
+        function updateDateFieldVisibility() {
+            const dateRow = document.getElementById('taskDateRow');
+            const dateLabel = document.getElementById('taskDateLabel');
+            const dateInput = document.getElementById('newTaskDate');
+
+            if (currentTaskTypeSelection === 'dailyNote') {
+                dateLabel.textContent = 'Add to';
+                dateRow.classList.add('required');
+                // Default to today for Daily Note
+                if (!dateInput.value) {
+                    dateInput.value = getLocalISOString(new Date());
+                }
+            } else {
+                dateLabel.textContent = 'Schedule for';
+                dateRow.classList.remove('required');
+            }
+        }
+
         function openAddTaskModal() {
             const modal = document.getElementById('addTaskModal');
             modal.style.display = 'flex';
+
+            // Reset state
+            currentTaskTypeSelection = DEFAULT_TASK_TYPE;
+
+            // Set toggle to default task type
+            document.querySelectorAll('#taskTypeSelector .toggle-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.value === DEFAULT_TASK_TYPE);
+            });
+
+            // Reset date input
+            document.getElementById('newTaskDate').value = '';
+
+            // Update date field based on task type
+            updateDateFieldVisibility();
+
+            // Add click listeners to toggle buttons
+            document.querySelectorAll('#taskTypeSelector .toggle-btn').forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll('#taskTypeSelector .toggle-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentTaskTypeSelection = btn.dataset.value;
+                    // Save preference immediately
+                    localStorage.setItem('default_task_type', currentTaskTypeSelection);
+                    DEFAULT_TASK_TYPE = currentTaskTypeSelection;
+                    // Reset date when switching types
+                    document.getElementById('newTaskDate').value = '';
+                    updateDateFieldVisibility();
+                };
+            });
 
             // Focus textarea
             setTimeout(() => {
@@ -1625,26 +1773,43 @@
                 return;
             }
 
+            // Validate: Daily Note requires a date
+            if (currentTaskTypeSelection === 'dailyNote' && !dateVal) {
+                alert('Please select a date for the Daily Note task');
+                return;
+            }
+
             showLoading(true);
             const BASE_URL = getBaseUrl();
 
             try {
-                // Use the /tasks endpoint for proper task creation
                 const markdown = `- [ ] ${text}`;
+                let task;
 
-                // Build task object - only include scheduleDate if a date is selected
-                const task = {
-                    markdown: markdown,
-                    location: {
-                        type: "inbox"
-                    }
-                };
-
-                // Only add taskInfo with scheduleDate if date is provided
-                if (dateVal) {
-                    task.taskInfo = {
-                        scheduleDate: dateVal
+                if (currentTaskTypeSelection === 'dailyNote') {
+                    // Daily Note task - add to specific daily note page
+                    task = {
+                        markdown: markdown,
+                        location: {
+                            type: "dailyNote",
+                            date: dateVal
+                        }
                     };
+                } else {
+                    // Inbox task
+                    task = {
+                        markdown: markdown,
+                        location: {
+                            type: "inbox"
+                        }
+                    };
+
+                    // Only add taskInfo with scheduleDate if date is provided
+                    if (dateVal) {
+                        task.taskInfo = {
+                            scheduleDate: dateVal
+                        };
+                    }
                 }
 
                 const taskPayload = {
@@ -1666,6 +1831,10 @@
                     throw new Error(`API Error: ${response.status}`);
                 }
 
+                // Save the task type preference for next time
+                localStorage.setItem('default_task_type', currentTaskTypeSelection);
+                DEFAULT_TASK_TYPE = currentTaskTypeSelection;
+
                 closeAddTaskModal();
                 initBoard(); // Refresh board
 
@@ -1676,6 +1845,10 @@
                 showLoading(false);
             }
         }
+
+        // --- TASK TYPE STATE ---
+        let DEFAULT_TASK_TYPE = localStorage.getItem('default_task_type') || 'inbox';
+        let currentTaskTypeSelection = DEFAULT_TASK_TYPE;
 
         // --- DATE PICKER MODAL FUNCTIONS ---
 
@@ -2439,20 +2612,11 @@
             if (!dateString) return 'No Date';
 
             const date = new Date(dateString + 'T00:00:00');
-            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
 
-            const dayOfWeek = days[date.getDay()];
-            const day = date.getDate();
-            const month = months[date.getMonth()];
-
-            // Add ordinal suffix (1st, 2nd, 3rd, 4th, etc.)
-            let suffix = 'th';
-            if (day === 1 || day === 21 || day === 31) suffix = 'st';
-            else if (day === 2 || day === 22) suffix = 'nd';
-            else if (day === 3 || day === 23) suffix = 'rd';
-
-            return `${dayOfWeek}, ${day}${suffix} ${month}`;
+            return `${year}/${month}/${day}`;
         }
 
         function openTaskInCraft(taskId, event) {
