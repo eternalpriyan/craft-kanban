@@ -1828,6 +1828,8 @@
                     // Reset date when switching types
                     document.getElementById('newTaskDate').value = '';
                     updateDateFieldVisibility();
+                    // Refocus textarea so Enter still submits
+                    document.getElementById('newTaskInput').focus();
                 };
             });
 
