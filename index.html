@@ -981,10 +981,6 @@
                             7-Day View
                         </label>
                         <label class="menu-item">
-                            <input type="checkbox" id="completedToggle" onchange="renderBoard()">
-                            Show Completed
-                        </label>
-                        <label class="menu-item">
                             <input type="checkbox" id="mondayToggle" onchange="toggleMondayStart()">
                             First Day is Monday
                         </label>
@@ -1090,7 +1086,6 @@
         const TODAY = new Date();
         TODAY.setHours(0, 0, 0, 0);
         let HOVERED_TASK_ID = null;
-        let TASK_COMPLETIONS = {}; // In-memory cache of task completion dates
 
         // --- INITIALIZATION ---
 
@@ -1117,9 +1112,6 @@
             icon.textContent = IS_SEVEN_DAY_VIEW ? '▦' : '☰';
 
             toggleView(); // Apply view - uses IS_MONDAY_FIRST
-
-            const showCompleted = localStorage.getItem('show_completed') !== 'false'; // Default true
-            document.getElementById('completedToggle').checked = showCompleted;
 
             document.addEventListener('click', function (event) {
                 const menu = document.getElementById('settingsMenu');
@@ -1199,7 +1191,6 @@
             if (!API_ID || !SPACE_ID) {
                 document.getElementById('setupModal').style.display = 'flex';
             } else {
-                loadCompletionDates();
                 initBoard();
             }
         };
@@ -1865,8 +1856,6 @@
 
         function distributeTasks() {
             const today = getLocalISOString(new Date());
-            const showCompleted = document.getElementById('completedToggle').checked;
-            localStorage.setItem('show_completed', showCompleted);
 
             const counts = {};
 
@@ -1876,7 +1865,8 @@
 
                 const isCompleted = task.taskInfo?.state === 'done' || task.markdown.startsWith('- [x]');
 
-                if (!showCompleted && isCompleted) return;
+                // Don't display completed tasks (they're in Craft docs already)
+                if (isCompleted) return;
 
                 const date = task.taskInfo?.scheduleDate;
                 let targetId = '';
@@ -2071,63 +2061,6 @@
             return `${dayOfWeek}, ${day}${suffix} ${month}`;
         }
 
-        // --- COMPLETION DATE TRACKING ---
-
-        function loadCompletionDates() {
-            const stored = localStorage.getItem('craft_task_completions');
-            TASK_COMPLETIONS = stored ? JSON.parse(stored) : {};
-            clearOldCompletions();
-        }
-
-        function getCompletionDate(taskId) {
-            return TASK_COMPLETIONS[taskId] || null;
-        }
-
-        function setCompletionDate(taskId, date) {
-            TASK_COMPLETIONS[taskId] = date;
-            localStorage.setItem('craft_task_completions', JSON.stringify(TASK_COMPLETIONS));
-        }
-
-        function clearOldCompletions() {
-            const ninetyDaysAgo = new Date();
-            ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-            const cutoffDate = getLocalISOString(ninetyDaysAgo);
-
-            let changed = false;
-            Object.keys(TASK_COMPLETIONS).forEach(taskId => {
-                if (TASK_COMPLETIONS[taskId] < cutoffDate) {
-                    delete TASK_COMPLETIONS[taskId];
-                    changed = true;
-                }
-            });
-
-            if (changed) {
-                localStorage.setItem('craft_task_completions', JSON.stringify(TASK_COMPLETIONS));
-            }
-        }
-
-        function getTaskCompletionDate(task) {
-            // Tier 1: Local tracking (most reliable)
-            const localCompletion = getCompletionDate(task.id);
-            if (localCompletion) return localCompletion;
-
-            // Tier 2: Infer from daily note location
-            // The location structure varies - try multiple ways to extract the date
-            if (task.location) {
-                // Check for dailyNote type with date
-                if (task.location.type === 'dailyNote' && task.location.date) {
-                    return task.location.date;
-                }
-                // Also check if location has a date property directly
-                if (task.location.date) {
-                    return task.location.date;
-                }
-            }
-
-            // Tier 3: No completion date available
-            return null;
-        }
-
         function openTaskInCraft(taskId, event) {
             event.preventDefault();
             event.stopPropagation();
@@ -2161,14 +2094,8 @@
             task.taskInfo.state = newState;
             if (newState === 'done') {
                 task.markdown = task.markdown.replace(/^- \[ \]/, '- [x]');
-                // Record completion date
-                const today = getLocalISOString(new Date());
-                setCompletionDate(taskId, today);
             } else {
                 task.markdown = task.markdown.replace(/^- \[x\]/, '- [ ]');
-                // Clear completion date when unmarking
-                delete TASK_COMPLETIONS[taskId];
-                localStorage.setItem('craft_task_completions', JSON.stringify(TASK_COMPLETIONS));
             }
 
             renderBoard();
