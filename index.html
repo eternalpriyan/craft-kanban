@@ -354,6 +354,38 @@
             height: 100%;
         }
 
+        .board.focus-view {
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .board.focus-view .column {
+            flex: 0 0 auto;
+            width: 500px;
+            min-width: 500px;
+            max-width: 500px;
+            max-height: 70vh;
+        }
+
+        .board.focus-view .column-header {
+            display: none;
+        }
+
+        .focus-hint {
+            display: none;
+            width: 500px;
+            text-align: right;
+            color: var(--text-muted);
+            font-size: 12px;
+            opacity: 0.5;
+        }
+
+        .board.focus-view .focus-hint {
+            display: block;
+        }
+
         .column {
             flex: 0 0 320px;
             min-width: 320px;
@@ -1367,6 +1399,10 @@
                     <span class="hotkey-desc">Toggle between standard and 7-day view</span>
                     <span class="hotkey-key">V</span>
                 </div>
+                <div class="hotkey-item">
+                    <span class="hotkey-desc">Toggle focus view (today only)</span>
+                    <span class="hotkey-key">F</span>
+                </div>
             </div>
 
             <div class="hotkey-section">
@@ -1417,9 +1453,9 @@
                 <div>
                     <strong>Craft Kanban</strong>
                     <span class="version-number">v1.0.0</span>
+                    by Priyan Nithya (<a href="mailto:priyan@priyan.yoga">priyan@priyan.yoga</a>)
                 </div>
                 <div class="author-links">
-                    <div>by Priyan Nithya (<a href="mailto:priyan@priyan.yoga">priyan@priyan.yoga</a>)</div>
                     <div><a href="https://buymeacoffee.com/npsoy" target="_blank">☕ Buy me a coffee</a></div>
                 </div>
             </div>
@@ -1433,6 +1469,7 @@
         const API_TOKEN = "guest-access";
         let TASKS_CACHE = [];
         let IS_SEVEN_DAY_VIEW = false;
+        let IS_FOCUS_VIEW = false;
         let IS_DARK_MODE = false;
         let IS_MONDAY_FIRST = false; // Default to Sunday
         let VIEW_START_DATE = new Date();
@@ -1507,13 +1544,23 @@
                     }
                 }
 
-                // V key to toggle view - but not when typing in input/textarea
+                // V key to toggle view - but not when typing in input/textarea or in focus view
                 if (event.key === 'v' &&
+                    !IS_FOCUS_VIEW &&
                     !event.target.matches('input, textarea, [contenteditable="true"]') &&
                     event.target.tagName !== 'INPUT' &&
                     event.target.tagName !== 'TEXTAREA') {
                     event.preventDefault();
                     toggleViewDirect();
+                }
+
+                // F key to toggle focus view - but not when typing in input/textarea
+                if (event.key === 'f' &&
+                    !event.target.matches('input, textarea, [contenteditable="true"]') &&
+                    event.target.tagName !== 'INPUT' &&
+                    event.target.tagName !== 'TEXTAREA') {
+                    event.preventDefault();
+                    toggleFocusView();
                 }
 
                 // Number keys 1-0 to toggle columns (left-to-right)
@@ -2207,6 +2254,28 @@
             }
         }
 
+        function toggleFocusView() {
+            IS_FOCUS_VIEW = !IS_FOCUS_VIEW;
+
+            const header = document.querySelector('header');
+            const board = document.getElementById('boardContainer');
+
+            if (IS_FOCUS_VIEW) {
+                header.style.display = 'none';
+                board.classList.add('focus-view');
+            } else {
+                header.style.display = '';
+                // Restore ticker based on view mode
+                const ticker = document.getElementById('tickerTape');
+                ticker.style.display = IS_SEVEN_DAY_VIEW ? 'flex' : 'none';
+                board.classList.remove('focus-view');
+            }
+
+            if (TASKS_CACHE.length > 0) {
+                renderBoard();
+            }
+        }
+
         function updateKanbanName() {
             const newName = document.getElementById('kanbanNameInput').value.trim() || 'Craft Kanban';
             const titleElement = document.getElementById('kanbanTitle');
@@ -2326,7 +2395,9 @@
             const container = document.getElementById('boardContainer');
             container.innerHTML = '';
 
-            if (IS_SEVEN_DAY_VIEW) {
+            if (IS_FOCUS_VIEW) {
+                renderFocusView(container);
+            } else if (IS_SEVEN_DAY_VIEW) {
                 renderSevenDayColumns(container);
             } else {
                 renderStandardColumns(container);
@@ -2344,6 +2415,19 @@
                 { id: 'future', title: 'Future', tooltip: 'Drag here to set a future date', collapsible: true, defaultCollapsed: true }
             ];
             createColumnsHTML(container, columns);
+        }
+
+        function renderFocusView(container) {
+            const columns = [
+                { id: 'today', title: 'Today', collapsible: false, defaultCollapsed: false }
+            ];
+            createColumnsHTML(container, columns);
+
+            // Add hint text
+            const hint = document.createElement('div');
+            hint.className = 'focus-hint';
+            hint.textContent = 'press F to exit';
+            container.appendChild(hint);
         }
 
         function renderSevenDayColumns(container) {
