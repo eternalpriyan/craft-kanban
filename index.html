@@ -299,8 +299,55 @@
             flex-direction: column;
             max-height: 100%;
             box-sizing: border-box;
-            transition: background-color 0.3s;
+            transition: background-color 0.3s, flex 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                        padding 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             border: 1px solid rgba(0, 0, 0, 0.03);
+        }
+
+        /* Collapsed column state - narrow vertical bar */
+        .column.column-collapsed {
+            flex: 0 0 60px;
+            padding: 20px 10px;
+            min-width: 60px;
+            overflow: hidden;
+            transition: flex 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                        padding 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Vertical text for collapsed headers - bottom-to-top (tilt head right) */
+        .column.column-collapsed .column-header {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            white-space: nowrap;
+            margin-bottom: 0;
+            height: 100%;
+            justify-content: flex-start;
+            padding-top: 10px;
+        }
+
+        /* Count badge styling for collapsed columns */
+        .column.column-collapsed .count {
+            writing-mode: horizontal-tb;  /* Keep count horizontal for readability */
+            margin-top: 8px;  /* Space between title and count */
+            font-size: 10px;  /* Slightly smaller to fit 60px width */
+            padding: 1px 6px;  /* Compact padding */
+            min-width: 0;  /* Allow badge to shrink if needed */
+        }
+
+        /* Hide task list in collapsed state */
+        .column.column-collapsed .task-list {
+            display: none;
+        }
+
+        .column.column-collapsed .collapse-icon {
+            writing-mode: horizontal-tb;
+        }
+
+        /* Drag-over visual feedback */
+        .column.column-collapsed.drag-over-expand {
+            background-color: var(--accent-color);
+            opacity: 0.3;
+            border: 2px dashed var(--accent-color);
         }
 
         .column-header {
@@ -323,6 +370,17 @@
 
         .column-header.collapsible:hover {
             opacity: 1;
+        }
+
+        /* Highlight today's column title with orange */
+        .column-header.today-column {
+            color: var(--accent-color);
+            font-weight: 500;
+        }
+
+        /* Grey out column headers when empty (zero tasks) */
+        .column-header.empty-column {
+            opacity: 0.4;
         }
 
         .collapse-icon {
@@ -348,15 +406,6 @@
             min-height: 100px;
             padding-right: 4px;
             position: relative;
-            transition: max-height 0.3s ease, opacity 0.3s ease;
-        }
-
-        .task-list.collapsed {
-            max-height: 0 !important;
-            min-height: 0 !important;
-            opacity: 0;
-            overflow: hidden;
-            padding: 0;
         }
 
         /* CARD STYLES */
@@ -697,6 +746,24 @@
             .header-top {
                 flex-direction: row;
                 align-items: center;
+            }
+
+            /* Disable column collapsing on mobile */
+            .column.column-collapsed {
+                flex: none;
+                width: 100%;
+                padding: 20px;
+            }
+
+            .column.column-collapsed .column-header {
+                writing-mode: horizontal-tb;
+                transform: none;
+                height: auto;
+            }
+
+            .column.column-collapsed .count,
+            .column.column-collapsed .task-list {
+                display: block;
             }
         }
 
@@ -1468,18 +1535,20 @@
         }
 
         function toggleColumn(colId) {
-            const taskList = document.getElementById(`list-${colId}`);
-            const header = document.querySelector(`#col-${colId} .column-header`);
+            const column = document.getElementById(`col-${colId}`);
+            const header = column.querySelector('.column-header');
             const icon = header.querySelector('.collapse-icon');
 
-            const isCurrentlyCollapsed = taskList.classList.contains('collapsed');
+            const isCurrentlyCollapsed = column.classList.contains('column-collapsed');
 
             if (isCurrentlyCollapsed) {
-                taskList.classList.remove('collapsed');
+                // EXPAND
+                column.classList.remove('column-collapsed');
                 icon.textContent = '▼';
                 localStorage.setItem(`column_${colId}_collapsed`, 'false');
             } else {
-                taskList.classList.add('collapsed');
+                // COLLAPSE
+                column.classList.add('column-collapsed');
                 icon.textContent = '▶';
                 localStorage.setItem(`column_${colId}_collapsed`, 'true');
             }
@@ -1688,51 +1757,56 @@
         }
 
         function renderStandardColumns(container) {
+            const today = getLocalISOString(new Date());
             const columns = [
-                { id: 'backlog', title: 'Backlog', tooltip: 'Overdue tasks', collapsible: true, defaultOpen: true },
-                { id: 'inbox', title: 'Inbox', tooltip: 'Tasks with no due date', collapsible: true, defaultOpen: false },
-                { id: 'today', title: 'Today' },
-                { id: 'future', title: 'Future', tooltip: 'Drag here to set a future date' }
+                { id: 'inbox', title: 'Inbox', tooltip: 'Tasks with no due date', collapsible: true, defaultCollapsed: true },
+                { id: 'backlog', title: 'Backlog', tooltip: 'Overdue tasks', collapsible: true, defaultCollapsed: true },
+                { id: 'today', title: 'Today', collapsible: true, defaultCollapsed: false },
+                { id: 'future', title: 'Future', tooltip: 'Drag here to set a future date', collapsible: true, defaultCollapsed: true }
             ];
             createColumnsHTML(container, columns);
         }
 
         function renderSevenDayColumns(container) {
-            const columns = [
-                { id: 'backlog', title: 'Backlog', tooltip: 'Overdue tasks', collapsible: true, defaultOpen: true },
-                { id: 'inbox', title: 'Inbox', tooltip: 'Tasks with no due date', collapsible: true, defaultOpen: false }
-            ];
+            const today = getLocalISOString(new Date());
 
-            // Ensure VIEW_START_DATE is correctly aligned to start of week
-            // This is just a safeguard, shiftWeek/toggleView should handle it
+            const columns = [
+                { id: 'inbox', title: 'Inbox', tooltip: 'Tasks with no due date', collapsible: true, defaultCollapsed: true },
+                { id: 'backlog', title: 'Backlog', tooltip: 'Overdue tasks', collapsible: true, defaultCollapsed: true }
+            ];
 
             for (let i = 0; i < 7; i++) {
                 const d = new Date(VIEW_START_DATE);
                 d.setDate(d.getDate() + i);
                 const dateStr = getLocalISOString(d);
 
-                // Format: "Sunday, 30th Nov"
                 const weekday = d.toLocaleDateString('en-US', { weekday: 'long' });
                 const day = d.getDate();
                 const month = d.toLocaleDateString('en-US', { month: 'short' });
 
-                // Add ordinal suffix (st, nd, rd, th)
                 const suffix = (day === 1 || day === 21 || day === 31) ? 'st' :
                                (day === 2 || day === 22) ? 'nd' :
                                (day === 3 || day === 23) ? 'rd' : 'th';
 
                 const displayStr = `${weekday}, ${day}${suffix} ${month}`;
-
-                const todayStr = getLocalISOString(new Date());
-                const title = (dateStr === todayStr) ? `Today (${displayStr})` : displayStr;
+                const title = (dateStr === today) ? `Today (${displayStr})` : displayStr;
 
                 columns.push({
                     id: dateStr,
-                    title: title
+                    title: title,
+                    collapsible: true,
+                    defaultCollapsed: (dateStr !== today),  // Only today expanded by default
+                    isToday: (dateStr === today)  // Flag to identify today's column
                 });
             }
 
-            columns.push({ id: 'future', title: 'Future', tooltip: 'Drag here to set a future date' });
+            columns.push({
+                id: 'future',
+                title: 'Future',
+                tooltip: 'Drag here to set a future date',
+                collapsible: true,
+                defaultCollapsed: true
+            });
 
             createColumnsHTML(container, columns);
         }
@@ -1744,30 +1818,44 @@
                 colDiv.id = `col-${col.id}`;
                 colDiv.dataset.colId = col.id;
 
+                // Determine if column should be collapsed
+                const storageKey = `column_${col.id}_collapsed`;
+                let isCollapsed = false;
+
+                if (col.collapsible) {
+                    const storedValue = localStorage.getItem(storageKey);
+                    if (storedValue === null) {
+                        // First time - use default
+                        isCollapsed = col.defaultCollapsed;
+                    } else {
+                        // Use stored preference
+                        isCollapsed = storedValue === 'true';
+                    }
+                }
+
+                // Apply collapsed class to column
+                if (isCollapsed) {
+                    colDiv.classList.add('column-collapsed');
+                }
+
+                // Add drag event handlers
                 colDiv.ondrop = (e) => dropInColumn(e, col.id);
                 colDiv.ondragover = (e) => allowDrop(e, col.id);
-                // REMOVED ondragleave to prevent flickering
+                colDiv.ondragenter = (e) => handleDragEnter(e, col.id);
+                colDiv.ondragleave = (e) => handleDragLeave(e, col.id);
 
                 const tooltipAttr = col.tooltip ? `title="${col.tooltip}"` : '';
-
-                // Check if column should be collapsed (from localStorage or default)
-                const storageKey = `column_${col.id}_collapsed`;
-                const isCollapsed = col.collapsible
-                    ? (localStorage.getItem(storageKey) === null
-                        ? !col.defaultOpen
-                        : localStorage.getItem(storageKey) === 'true')
-                    : false;
-
-                const collapsedClass = isCollapsed ? ' collapsed' : '';
                 const chevron = col.collapsible ? `<span class="collapse-icon">${isCollapsed ? '▶' : '▼'}</span>` : '';
+                const headerClasses = col.collapsible ? ' collapsible' : '';
+                const todayClass = col.isToday ? ' today-column' : '';
 
                 colDiv.innerHTML = `
-                    <div class="column-header${col.collapsible ? ' collapsible' : ''}" ${tooltipAttr} ${col.collapsible ? `onclick="toggleColumn('${col.id}')"` : ''}>
+                    <div class="column-header${headerClasses}${todayClass}" ${tooltipAttr} ${col.collapsible ? `onclick="toggleColumn('${col.id}')"` : ''}>
                         ${chevron}
                         ${col.title}
                         <span class="count" id="count-${col.id}">0</span>
                     </div>
-                    <div class="task-list${collapsedClass}" id="list-${col.id}"></div>
+                    <div class="task-list" id="list-${col.id}"></div>
                 `;
                 container.appendChild(colDiv);
             });
@@ -1836,7 +1924,27 @@
 
             Object.keys(counts).forEach(id => {
                 const badge = document.getElementById(`count-${id}`);
-                if (badge) badge.innerText = counts[id];
+                const header = document.querySelector(`#col-${id} .column-header`);
+                if (badge) {
+                    const displayCount = counts[id] > 99 ? '99+' : counts[id];
+                    badge.innerText = displayCount;
+                }
+                if (header) {
+                    if (counts[id] === 0) {
+                        header.classList.add('empty-column');
+                    } else {
+                        header.classList.remove('empty-column');
+                    }
+                }
+            });
+
+            // Also handle columns with no tasks at all (not in counts object)
+            document.querySelectorAll('.column').forEach(col => {
+                const colId = col.dataset.colId;
+                if (!counts[colId]) {
+                    const header = col.querySelector('.column-header');
+                    if (header) header.classList.add('empty-column');
+                }
             });
         }
 
@@ -1897,6 +2005,7 @@
             el.ondragend = () => {
                 el.classList.remove('dragging');
                 removePlaceholder();
+                clearDragExpandState();
             };
 
             // Hover tracking for delete key
@@ -2099,6 +2208,73 @@
             if (placeholder.parentNode) {
                 placeholder.parentNode.removeChild(placeholder);
             }
+        }
+
+        // --- DRAG-OVER AUTO-EXPAND LOGIC ---
+
+        let dragExpandTimeout = null;
+        let dragOverColumnId = null;
+        const DRAG_EXPAND_DELAY = 800; // 800ms delay
+
+        function handleDragEnter(ev, colId) {
+            const column = document.getElementById(`col-${colId}`);
+            const isCollapsed = column.classList.contains('column-collapsed');
+
+            if (!isCollapsed) return; // Already expanded
+            if (dragOverColumnId === colId) return; // Already processing
+
+            dragOverColumnId = colId;
+
+            // Add visual feedback immediately
+            column.classList.add('drag-over-expand');
+
+            // Clear any existing timeout
+            if (dragExpandTimeout) {
+                clearTimeout(dragExpandTimeout);
+            }
+
+            // Set timeout to auto-expand
+            dragExpandTimeout = setTimeout(() => {
+                if (dragOverColumnId === colId && column.classList.contains('column-collapsed')) {
+                    toggleColumn(colId); // Auto-expand and persist
+                }
+                column.classList.remove('drag-over-expand');
+            }, DRAG_EXPAND_DELAY);
+        }
+
+        function handleDragLeave(ev, colId) {
+            const column = document.getElementById(`col-${colId}`);
+
+            // Check if actually leaving column (not just hovering child element)
+            const rect = column.getBoundingClientRect();
+            const x = ev.clientX;
+            const y = ev.clientY;
+
+            if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+                // Actually left the column
+                if (dragOverColumnId === colId) {
+                    dragOverColumnId = null;
+                    column.classList.remove('drag-over-expand');
+
+                    if (dragExpandTimeout) {
+                        clearTimeout(dragExpandTimeout);
+                        dragExpandTimeout = null;
+                    }
+                }
+            }
+        }
+
+        function clearDragExpandState() {
+            if (dragExpandTimeout) {
+                clearTimeout(dragExpandTimeout);
+                dragExpandTimeout = null;
+            }
+            dragOverColumnId = null;
+
+            // Remove visual feedback from all columns
+            document.querySelectorAll('.column.drag-over-expand').forEach(col => {
+                col.classList.remove('drag-over-expand');
+            });
         }
 
         async function dropInColumn(ev, newColId) {
