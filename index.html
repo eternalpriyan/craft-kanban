@@ -1878,25 +1878,26 @@
                     if (!date) {
                         // No date = Inbox
                         targetId = 'inbox';
-                    } else if (date < today) {
-                        // Past date = Backlog (overdue)
-                        targetId = 'backlog';
                     } else {
+                        // Calculate view window boundaries
                         const viewStart = new Date(VIEW_START_DATE);
                         viewStart.setHours(0, 0, 0, 0);
-
                         const viewStartStr = getLocalISOString(viewStart);
 
-                        const d = new Date(viewStart);
-                        d.setDate(d.getDate() + 6);
-                        const viewEndStr = getLocalISOString(d);
+                        const viewEnd = new Date(viewStart);
+                        viewEnd.setDate(viewEnd.getDate() + 6);
+                        const viewEndStr = getLocalISOString(viewEnd);
 
-                        if (date < viewStartStr) {
-                            targetId = 'backlog';
-                        } else if (date > viewEndStr) {
-                            targetId = 'future';
-                        } else {
+                        // Check if date falls within the visible 7-day window
+                        if (date >= viewStartStr && date <= viewEndStr) {
+                            // Task date is visible in one of the day columns
                             targetId = date;
+                        } else if (date < viewStartStr) {
+                            // Task date is before the view window (backlog)
+                            targetId = 'backlog';
+                        } else {
+                            // Task date is after the view window (future)
+                            targetId = 'future';
                         }
                     }
                 } else {
