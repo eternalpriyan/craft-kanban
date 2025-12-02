@@ -1973,7 +1973,7 @@
 
             // Build meta text with formatted date
             let metaHTML = '';
-            if (isBacklog && !task.taskInfo.scheduleDate) {
+            if (!task.taskInfo.scheduleDate) {
                 metaHTML = `<span class="date-badge">Inbox</span>`;
             } else if (isOverdue) {
                 metaHTML = `<span class="overdue-badge">Overdue: ${formattedDate}</span>`;
