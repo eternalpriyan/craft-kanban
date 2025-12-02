@@ -1493,6 +1493,21 @@
                     return true;
                 });
 
+                // Debug: Log completed tasks and their locations
+                const completedTasks = TASKS_CACHE.filter(t => t.taskInfo?.state === 'done' || t.markdown.startsWith('- [x]'));
+                console.log('=== COMPLETED TASKS DEBUG ===');
+                console.log('Total completed tasks:', completedTasks.length);
+                completedTasks.slice(0, 5).forEach((t, i) => {
+                    console.log(`Task ${i + 1}:`, {
+                        id: t.id,
+                        markdown: t.markdown.substring(0, 50),
+                        scheduleDate: t.taskInfo?.scheduleDate,
+                        location: t.location,
+                        state: t.taskInfo?.state
+                    });
+                });
+                console.log('=== END COMPLETED DEBUG ===');
+
                 renderBoard();
 
             } catch (error) {
@@ -2127,14 +2142,28 @@
         function getTaskCompletionDate(task) {
             // Tier 1: Local tracking (most reliable)
             const localCompletion = getCompletionDate(task.id);
-            if (localCompletion) return localCompletion;
+            if (localCompletion) {
+                console.log(`Task ${task.id}: Using local completion date:`, localCompletion);
+                return localCompletion;
+            }
 
             // Tier 2: Infer from daily note location
-            if (task.location?.type === 'dailyNote' && task.location.date) {
-                return task.location.date;
+            // The location structure varies - try multiple ways to extract the date
+            if (task.location) {
+                // Check for dailyNote type with date
+                if (task.location.type === 'dailyNote' && task.location.date) {
+                    console.log(`Task ${task.id}: Using dailyNote location date:`, task.location.date);
+                    return task.location.date;
+                }
+                // Also check if location has a date property directly
+                if (task.location.date) {
+                    console.log(`Task ${task.id}: Using location date:`, task.location.date);
+                    return task.location.date;
+                }
             }
 
             // Tier 3: No completion date available
+            console.log(`Task ${task.id}: No completion date found`);
             return null;
         }
 
