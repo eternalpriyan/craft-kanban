@@ -2236,14 +2236,36 @@
             // Format the date nicely
             const formattedDate = formatDate(task.taskInfo.scheduleDate);
 
-            // Build meta text with formatted date
+            // Build meta text with task type label
             let metaHTML = '';
-            if (!task.taskInfo.scheduleDate) {
-                metaHTML = `<span class="date-badge">Inbox</span>`;
-            } else if (isOverdue) {
-                metaHTML = `<span class="overdue-badge">Overdue: ${formattedDate}</span>`;
-            } else {
-                metaHTML = `<span class="date-badge">${formattedDate}</span>`;
+
+            // Determine task source type
+            const isInboxTask = !task.location || task.location.type === 'inbox';
+            const isDailyNoteTask = task.location && task.location.type === 'dailyNote';
+
+            // Get the actual location date (where it lives in Craft for daily notes)
+            const locationDate = task.location?.date || null;
+
+            if (isInboxTask) {
+                // Inbox tasks: Show label only when not in Inbox column
+                if (listId !== 'inbox' && task.taskInfo?.scheduleDate) {
+                    if (isOverdue) {
+                        metaHTML = `<span class="overdue-badge">Inbox / Overdue: ${formattedDate}</span>`;
+                    } else {
+                        metaHTML = `<span class="date-badge">Inbox / ${formattedDate}</span>`;
+                    }
+                }
+                // When in Inbox column: no label needed
+
+            } else if (isDailyNoteTask) {
+                // Daily Note tasks: Show label only in Backlog/Future
+                if (listId === 'backlog' || listId === 'future') {
+                    const formattedLocationDate = formatDate(locationDate);
+                    metaHTML = `<span class="date-badge">Daily Note / ${formattedLocationDate}</span>`;
+                } else {
+                    // In date columns: just show "Daily Note"
+                    metaHTML = `<span class="date-badge">Daily Note</span>`;
+                }
             }
 
             el.innerHTML = `
