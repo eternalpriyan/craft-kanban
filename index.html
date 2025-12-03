@@ -838,6 +838,11 @@
             background: rgba(128, 128, 128, 0.4);
         }
 
+        /* Mobile Menu Container - hidden on desktop */
+        .mobile-menu-container {
+            display: none;
+        }
+
         /* Mobile Menu Button - hidden on desktop */
         .mobile-menu-btn {
             display: none;
@@ -942,6 +947,10 @@
             /* Hide desktop buttons, show hamburger menu */
             .desktop-buttons {
                 display: none;
+            }
+
+            .mobile-menu-container {
+                display: block;
             }
 
             .mobile-menu-btn {
@@ -1416,7 +1425,7 @@
             </div>
 
             <!-- Mobile hamburger menu -->
-            <div style="position: relative;">
+            <div class="mobile-menu-container" style="position: relative;">
                 <button class="mobile-menu-btn" onclick="toggleMobileMenu()" title="Menu">
                     ☰
                 </button>
