@@ -948,24 +948,39 @@
                 display: block;
             }
 
-            /* Disable column collapsing on mobile */
+            /* Mobile: Columns collapse upwards (show header only) instead of sideways */
             .column.column-collapsed {
                 flex: none;
                 width: 100%;
                 min-width: 0;
                 max-width: 100%;
-                padding: 20px;
+                padding: 12px 20px;
+                min-height: auto;
             }
 
             .column.column-collapsed .column-header {
                 writing-mode: horizontal-tb;
                 transform: none;
                 height: auto;
+                margin-bottom: 0;
             }
 
-            .column.column-collapsed .count,
+            .column.column-collapsed .count {
+                display: inline-flex;
+            }
+
             .column.column-collapsed .task-list {
-                display: block;
+                display: none;
+            }
+
+            /* Mobile: Expanded column chevron points up to indicate collapse upward */
+            .column:not(.column-collapsed) .collapse-icon {
+                transform: rotate(180deg);
+            }
+
+            /* Mobile: Collapsed column chevron points down to indicate expand downward */
+            .column.column-collapsed .collapse-icon {
+                transform: rotate(-90deg);
             }
 
             /* Mobile: Always show task actions since there's no hover */
