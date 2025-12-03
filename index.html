@@ -1474,6 +1474,44 @@
         .author-links a:hover {
             text-decoration: underline;
         }
+
+        /* Mobile Floating Action Button */
+        .mobile-fab {
+            display: none;
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            font-size: 28px;
+            font-weight: 300;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(217, 119, 87, 0.4);
+            z-index: 1000;
+            transition: transform 0.2s, box-shadow 0.2s;
+            line-height: 1;
+        }
+
+        .mobile-fab:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(217, 119, 87, 0.5);
+        }
+
+        .mobile-fab:active {
+            transform: scale(0.95);
+        }
+
+        @media (max-width: 768px) {
+            .mobile-fab {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 
@@ -1535,27 +1573,33 @@
                 </div>
             </div>
 
-            <!-- Mobile hamburger menu -->
+            <!-- Mobile hamburger menu (Settings) -->
             <div style="position: relative;">
-                <button class="mobile-menu-btn" onclick="toggleMobileMenu()" title="Menu">
-                    ☰
+                <button class="mobile-menu-btn" onclick="toggleMobileMenu()" title="Settings">
+                    ⚙️
                 </button>
                 <div class="mobile-menu" id="mobileMenu">
-                    <button class="mobile-menu-item" onclick="toggleViewDirect(); closeMobileMenu();">
-                        <span id="mobileViewToggleIcon">☰</span> Toggle View
-                    </button>
-                    <button class="mobile-menu-item" onclick="openAddTaskModal(); closeMobileMenu();">
-                        + Add Task
-                    </button>
-                    <button class="mobile-menu-item" onclick="openAddModal(); closeMobileMenu();">
-                        + Add Note
-                    </button>
+                    <div class="menu-input-group">
+                        <label for="mobileKanbanNameInput">Kanban Name</label>
+                        <input type="text" id="mobileKanbanNameInput" placeholder="Craft Kanban"
+                            onchange="updateKanbanNameFromMobile()">
+                    </div>
                     <div class="mobile-menu-divider"></div>
-                    <button class="mobile-menu-item" onclick="openHotkeyModal(); closeMobileMenu();">
-                        ? Keyboard Shortcuts
-                    </button>
-                    <button class="mobile-menu-item" onclick="toggleSettings(); closeMobileMenu();">
-                        ⚙️ Settings
+                    <label class="mobile-menu-item" style="cursor: pointer;">
+                        <input type="checkbox" id="mobileThemeToggle" onchange="toggleTheme()" style="accent-color: var(--accent-color);">
+                        Dark Mode
+                    </label>
+                    <label class="mobile-menu-item" style="cursor: pointer;">
+                        <input type="checkbox" id="mobileViewToggle" onchange="toggleView()" style="accent-color: var(--accent-color);">
+                        7-Day View
+                    </label>
+                    <label class="mobile-menu-item" style="cursor: pointer;">
+                        <input type="checkbox" id="mobileMondayToggle" onchange="toggleMondayStart()" style="accent-color: var(--accent-color);">
+                        First Day is Monday
+                    </label>
+                    <div class="mobile-menu-divider"></div>
+                    <button class="mobile-menu-item" style="color: var(--accent-color); font-weight: 500;" onclick="changeApiId(); closeMobileMenu();">
+                        Change Settings
                     </button>
                 </div>
             </div>
@@ -1576,6 +1620,9 @@
     <footer style="display: none;">
         <!-- Footer removed - version and author info now in hotkey reference (press ?) -->
     </footer>
+
+    <!-- Mobile Floating Action Button -->
+    <button class="mobile-fab" onclick="openAddTaskModal()" title="Add New Task">+</button>
 
     <!-- Add Quick Note Modal -->
     <div class="modal-overlay" id="addModal">
@@ -1769,17 +1816,27 @@
             document.getElementById('kanbanTitle').textContent = savedName;
             document.getElementById('kanbanNameInput').value = savedName;
 
+            // Also sync mobile kanban name input
+            const mobileNameInput = document.getElementById('mobileKanbanNameInput');
+            if (mobileNameInput) mobileNameInput.value = savedName;
+
             // Load persisted settings - ORDER MATTERS!
             // Load IS_MONDAY_FIRST FIRST because toggleView() needs it for week calculation
             IS_MONDAY_FIRST = localStorage.getItem('monday_first') === 'true'; // Default false (Sunday)
             document.getElementById('mondayToggle').checked = IS_MONDAY_FIRST;
+            const mobileMondayToggle = document.getElementById('mobileMondayToggle');
+            if (mobileMondayToggle) mobileMondayToggle.checked = IS_MONDAY_FIRST;
 
             IS_DARK_MODE = localStorage.getItem('theme_mode') === 'true';
             document.getElementById('themeToggle').checked = IS_DARK_MODE;
+            const mobileThemeToggle = document.getElementById('mobileThemeToggle');
+            if (mobileThemeToggle) mobileThemeToggle.checked = IS_DARK_MODE;
             toggleTheme(); // Apply theme
 
             IS_SEVEN_DAY_VIEW = localStorage.getItem('view_mode') === 'true';
             document.getElementById('viewToggle').checked = IS_SEVEN_DAY_VIEW;
+            const mobileViewToggle = document.getElementById('mobileViewToggle');
+            if (mobileViewToggle) mobileViewToggle.checked = IS_SEVEN_DAY_VIEW;
 
             // Set initial icon state
             const icon = document.getElementById('viewToggleIcon');
@@ -2637,15 +2694,26 @@
         }
 
         function toggleView() {
-            // Called from settings menu checkbox
-            IS_SEVEN_DAY_VIEW = document.getElementById('viewToggle').checked;
+            const desktopToggle = document.getElementById('viewToggle');
+            const mobileToggle = document.getElementById('mobileViewToggle');
 
-            // Update icons to match (desktop and mobile)
+            // Determine new state from whichever checkbox differs from current state
+            if (desktopToggle && desktopToggle.checked !== IS_SEVEN_DAY_VIEW) {
+                IS_SEVEN_DAY_VIEW = desktopToggle.checked;
+            } else if (mobileToggle && mobileToggle.checked !== IS_SEVEN_DAY_VIEW) {
+                IS_SEVEN_DAY_VIEW = mobileToggle.checked;
+            } else if (desktopToggle) {
+                IS_SEVEN_DAY_VIEW = desktopToggle.checked;
+            }
+
+            // Sync both checkboxes
+            if (desktopToggle) desktopToggle.checked = IS_SEVEN_DAY_VIEW;
+            if (mobileToggle) mobileToggle.checked = IS_SEVEN_DAY_VIEW;
+
+            // Update icons to match (desktop)
             const icon = document.getElementById('viewToggleIcon');
-            const mobileIcon = document.getElementById('mobileViewToggleIcon');
             const viewText = IS_SEVEN_DAY_VIEW ? '▦' : '☰';
-            icon.textContent = viewText;
-            if (mobileIcon) mobileIcon.textContent = viewText;
+            if (icon) icon.textContent = viewText;
 
             localStorage.setItem('view_mode', IS_SEVEN_DAY_VIEW);
 
@@ -2671,13 +2739,43 @@
         }
 
         function toggleTheme() {
-            IS_DARK_MODE = document.getElementById('themeToggle').checked;
+            const desktopToggle = document.getElementById('themeToggle');
+            const mobileToggle = document.getElementById('mobileThemeToggle');
+
+            // Determine new state from whichever checkbox differs from current state
+            if (desktopToggle && desktopToggle.checked !== IS_DARK_MODE) {
+                IS_DARK_MODE = desktopToggle.checked;
+            } else if (mobileToggle && mobileToggle.checked !== IS_DARK_MODE) {
+                IS_DARK_MODE = mobileToggle.checked;
+            } else if (desktopToggle) {
+                IS_DARK_MODE = desktopToggle.checked;
+            }
+
+            // Sync both checkboxes
+            if (desktopToggle) desktopToggle.checked = IS_DARK_MODE;
+            if (mobileToggle) mobileToggle.checked = IS_DARK_MODE;
+
             document.documentElement.setAttribute('data-theme', IS_DARK_MODE ? 'dark' : 'light');
             localStorage.setItem('theme_mode', IS_DARK_MODE);
         }
 
         function toggleMondayStart() {
-            IS_MONDAY_FIRST = document.getElementById('mondayToggle').checked;
+            const desktopToggle = document.getElementById('mondayToggle');
+            const mobileToggle = document.getElementById('mobileMondayToggle');
+
+            // Determine new state from whichever checkbox differs from current state
+            if (desktopToggle && desktopToggle.checked !== IS_MONDAY_FIRST) {
+                IS_MONDAY_FIRST = desktopToggle.checked;
+            } else if (mobileToggle && mobileToggle.checked !== IS_MONDAY_FIRST) {
+                IS_MONDAY_FIRST = mobileToggle.checked;
+            } else if (desktopToggle) {
+                IS_MONDAY_FIRST = desktopToggle.checked;
+            }
+
+            // Sync both checkboxes
+            if (desktopToggle) desktopToggle.checked = IS_MONDAY_FIRST;
+            if (mobileToggle) mobileToggle.checked = IS_MONDAY_FIRST;
+
             localStorage.setItem('monday_first', IS_MONDAY_FIRST);
             if (IS_SEVEN_DAY_VIEW) {
                 // Reset view start date to align with new start of week
@@ -2725,6 +2823,29 @@
             }
 
             localStorage.setItem('kanban_name', newName);
+
+            // Sync mobile input
+            const mobileInput = document.getElementById('mobileKanbanNameInput');
+            if (mobileInput) {
+                mobileInput.value = newName;
+            }
+        }
+
+        function updateKanbanNameFromMobile() {
+            const newName = document.getElementById('mobileKanbanNameInput').value.trim() || 'Craft Kanban';
+            const titleElement = document.getElementById('kanbanTitle');
+
+            if (titleElement) {
+                titleElement.textContent = newName;
+            }
+
+            localStorage.setItem('kanban_name', newName);
+
+            // Sync desktop input
+            const desktopInput = document.getElementById('kanbanNameInput');
+            if (desktopInput) {
+                desktopInput.value = newName;
+            }
         }
 
         function editKanbanName() {
