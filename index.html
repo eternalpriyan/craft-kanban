@@ -836,6 +836,80 @@
             background: rgba(128, 128, 128, 0.4);
         }
 
+        /* Mobile Menu Button - hidden on desktop */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: 1px solid var(--input-border);
+            cursor: pointer;
+            color: var(--text-primary);
+            font-size: 20px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            line-height: 1;
+        }
+
+        .mobile-menu-btn:hover {
+            background-color: var(--column-bg);
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        /* Mobile Dropdown Menu */
+        .mobile-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: var(--menu-bg);
+            border: 1px solid var(--header-border);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px var(--menu-shadow);
+            padding: 8px;
+            z-index: 101;
+            min-width: 200px;
+            margin-top: 5px;
+        }
+
+        .mobile-menu.open {
+            display: block;
+        }
+
+        .mobile-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border: none;
+            background: none;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: var(--font-sans);
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .mobile-menu-item:hover {
+            background-color: var(--column-bg);
+        }
+
+        .mobile-menu-divider {
+            height: 1px;
+            background: var(--header-border);
+            margin: 6px 0;
+        }
+
+        /* Desktop button group */
+        .desktop-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
         /* Mobile Responsiveness */
         @media (max-width: 768px) {
             body {
@@ -861,6 +935,15 @@
             .header-top {
                 flex-direction: row;
                 align-items: center;
+            }
+
+            /* Hide desktop buttons, show hamburger menu */
+            .desktop-buttons {
+                display: none;
+            }
+
+            .mobile-menu-btn {
+                display: block;
             }
 
             /* Disable column collapsing on mobile */
@@ -1265,14 +1348,13 @@
         <div class="header-top">
             <h1 id="kanbanTitle" onclick="editKanbanName()" title="Click to edit">Craft Kanban</h1>
 
-            <div style="display: flex; gap: 10px; align-items: center;">
+            <!-- Desktop buttons -->
+            <div class="desktop-buttons">
                 <button class="quick-note-btn" id="viewToggleBtn" onclick="toggleViewDirect()" title="Toggle between 3-column and 7-day view (V)">
                     <span id="viewToggleIcon">☰</span>
                 </button>
-                <button class="quick-note-btn" onclick="openAddTaskModal()" title="Add New Task (Shift+Space)">+
-                    Task</button>
-                <button class="quick-note-btn" onclick="openAddModal()" title="Add Quick Note (Spacebar)">+
-                    Note</button>
+                <button class="quick-note-btn" onclick="openAddTaskModal()" title="Add New Task (Shift+Space)">+ Task</button>
+                <button class="quick-note-btn" onclick="openAddModal()" title="Add Quick Note (Spacebar)">+ Note</button>
                 <button class="quick-note-btn" onclick="openHotkeyModal()" title="Keyboard shortcuts (?)">?</button>
                 <div style="position: relative;">
                     <button class="settings-btn" onclick="toggleSettings()">⚙️</button>
@@ -1300,6 +1382,31 @@
                             Change Settings
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Mobile hamburger menu -->
+            <div style="position: relative;">
+                <button class="mobile-menu-btn" onclick="toggleMobileMenu()" title="Menu">
+                    ☰
+                </button>
+                <div class="mobile-menu" id="mobileMenu">
+                    <button class="mobile-menu-item" onclick="toggleViewDirect(); closeMobileMenu();">
+                        <span id="mobileViewToggleIcon">☰</span> Toggle View
+                    </button>
+                    <button class="mobile-menu-item" onclick="openAddTaskModal(); closeMobileMenu();">
+                        + Add Task
+                    </button>
+                    <button class="mobile-menu-item" onclick="openAddModal(); closeMobileMenu();">
+                        + Add Note
+                    </button>
+                    <div class="mobile-menu-divider"></div>
+                    <button class="mobile-menu-item" onclick="openHotkeyModal(); closeMobileMenu();">
+                        ? Keyboard Shortcuts
+                    </button>
+                    <button class="mobile-menu-item" onclick="toggleSettings(); closeMobileMenu();">
+                        ⚙️ Settings
+                    </button>
                 </div>
             </div>
         </div>
@@ -2106,6 +2213,25 @@
             document.getElementById('settingsMenu').classList.toggle('open');
         }
 
+        function toggleMobileMenu() {
+            document.getElementById('mobileMenu').classList.toggle('open');
+        }
+
+        function closeMobileMenu() {
+            document.getElementById('mobileMenu').classList.remove('open');
+        }
+
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const mobileMenu = document.getElementById('mobileMenu');
+            const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+            if (mobileMenu && mobileMenuBtn &&
+                !mobileMenu.contains(event.target) &&
+                !mobileMenuBtn.contains(event.target)) {
+                mobileMenu.classList.remove('open');
+            }
+        });
+
         function toggleColumn(colId) {
             const column = document.getElementById(`col-${colId}`);
             const header = column.querySelector('.column-header');
@@ -2171,9 +2297,12 @@
             // Update checkbox in settings menu to match
             document.getElementById('viewToggle').checked = IS_SEVEN_DAY_VIEW;
 
-            // Update icon
+            // Update icons (desktop and mobile)
             const icon = document.getElementById('viewToggleIcon');
-            icon.textContent = IS_SEVEN_DAY_VIEW ? '▦' : '☰';
+            const mobileIcon = document.getElementById('mobileViewToggleIcon');
+            const viewText = IS_SEVEN_DAY_VIEW ? '▦' : '☰';
+            icon.textContent = viewText;
+            if (mobileIcon) mobileIcon.textContent = viewText;
 
             // Save and apply
             localStorage.setItem('view_mode', IS_SEVEN_DAY_VIEW);
@@ -2203,9 +2332,12 @@
             // Called from settings menu checkbox
             IS_SEVEN_DAY_VIEW = document.getElementById('viewToggle').checked;
 
-            // Update icon to match
+            // Update icons to match (desktop and mobile)
             const icon = document.getElementById('viewToggleIcon');
-            icon.textContent = IS_SEVEN_DAY_VIEW ? '▦' : '☰';
+            const mobileIcon = document.getElementById('mobileViewToggleIcon');
+            const viewText = IS_SEVEN_DAY_VIEW ? '▦' : '☰';
+            icon.textContent = viewText;
+            if (mobileIcon) mobileIcon.textContent = viewText;
 
             localStorage.setItem('view_mode', IS_SEVEN_DAY_VIEW);
 
