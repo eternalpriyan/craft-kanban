@@ -19,16 +19,6 @@
     <!-- HTML Sanitizer for XSS Protection -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
 
-    <!-- Drag and Drop Polyfill -->
-    <script src="https://unpkg.com/mobile-drag-drop/index.min.js"></script>
-    <script>
-        // Initialize mobile support
-        MobileDragDrop.polyfill({
-            dragImageTranslateOverride: MobileDragDrop.scrollBehaviourDragImageTranslateOverride
-        });
-        window.addEventListener('touchmove', function () { }, { passive: false });
-    </script>
-    <link rel="stylesheet" href="https://unpkg.com/mobile-drag-drop/default.css">
 
     <style>
         :root {
@@ -522,8 +512,6 @@
             border: 1px solid transparent;
             user-select: none;
             position: relative;
-            /* Required for mobile-drag-drop polyfill */
-            touch-action: none;
         }
 
         [data-theme="dark"] .card {
@@ -659,6 +647,123 @@
         .delete-btn:hover {
             background-color: var(--column-bg);
             color: var(--danger-color);
+        }
+
+        /* Move Button - Hidden on desktop, shown on mobile */
+        .move-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 12px;
+            padding: 3px 6px;
+            border-radius: 3px;
+            transition: all 0.2s;
+            white-space: nowrap;
+            line-height: 1;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .move-btn:hover {
+            background-color: var(--column-bg);
+            color: var(--accent-color);
+        }
+
+        /* Move Task Modal */
+        .move-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .move-modal-overlay.open {
+            display: flex;
+        }
+
+        .move-modal {
+            background: var(--card-bg);
+            border-radius: 16px 16px 0 0;
+            width: 100%;
+            max-width: 500px;
+            max-height: 70vh;
+            overflow-y: auto;
+            padding: 20px;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        .move-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--header-border);
+        }
+
+        .move-modal-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .move-modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .move-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border: none;
+            background: none;
+            color: var(--text-primary);
+            font-size: 15px;
+            font-family: var(--font-sans);
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .move-option:hover {
+            background-color: var(--column-bg);
+        }
+
+        .move-option.current {
+            background-color: var(--column-bg);
+            color: var(--accent-color);
+            font-weight: 500;
+        }
+
+        .move-option-icon {
+            font-size: 18px;
         }
 
         /* Inline Edit Input */
@@ -992,8 +1097,23 @@
             .card-content,
             .checkbox,
             .edit-btn,
-            .delete-btn {
+            .delete-btn,
+            .move-btn {
                 touch-action: manipulation;
+            }
+
+            /* Mobile: Disable grab cursor since drag is disabled */
+            .card {
+                cursor: default;
+            }
+
+            .card:active {
+                cursor: default;
+            }
+
+            /* Mobile: Show move button */
+            .move-btn {
+                display: flex;
             }
         }
 
@@ -1615,6 +1735,17 @@
         </div>
     </div>
 
+    <!-- Move Task Modal (Mobile) -->
+    <div class="move-modal-overlay" id="moveModal" onclick="closeMoveModal(event)">
+        <div class="move-modal" onclick="event.stopPropagation()">
+            <div class="move-modal-header">
+                <span class="move-modal-title">Move to...</span>
+                <button class="move-modal-close" onclick="closeMoveModal()">&times;</button>
+            </div>
+            <div id="moveOptions"></div>
+        </div>
+    </div>
+
     <script>
         // --- CONFIGURATION ---
         let API_ID = localStorage.getItem('craft_api_id');
@@ -1694,6 +1825,10 @@
                     const hotkeyModal = document.getElementById('hotkeyModal');
                     if (hotkeyModal && hotkeyModal.style.display === 'flex') {
                         closeHotkeyModal();
+                    }
+                    const moveModal = document.getElementById('moveModal');
+                    if (moveModal && moveModal.classList.contains('open')) {
+                        closeMoveModal();
                     }
                 }
 
@@ -2144,6 +2279,149 @@
             // Close modal
             modal.style.display = 'none';
             datePickCallback = null;
+        }
+
+        // --- MOVE TASK MODAL FUNCTIONS (Mobile) ---
+
+        let moveTaskId = null;
+        let moveTaskCurrentColumn = null;
+
+        function openMoveModal(taskId, currentColId, event) {
+            if (event) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+
+            moveTaskId = taskId;
+            moveTaskCurrentColumn = currentColId;
+
+            const task = TASKS_CACHE.find(t => t.id === taskId);
+            if (!task) return;
+
+            // Check if task is from daily note (can't move to inbox)
+            const isFromDailyNote = task.location && task.location.type === 'dailyNote';
+
+            // Build column options based on current view
+            const optionsContainer = document.getElementById('moveOptions');
+            optionsContainer.innerHTML = '';
+
+            let columns = [];
+            if (IS_SEVEN_DAY_VIEW) {
+                // 7-day view columns
+                columns.push({ id: 'inbox', title: 'Inbox', icon: '📥' });
+                columns.push({ id: 'backlog', title: 'Backlog', icon: '📋' });
+
+                // Add 7 days
+                for (let i = 0; i < 7; i++) {
+                    const d = new Date(VIEW_START_DATE);
+                    d.setDate(d.getDate() + i);
+                    const dateStr = getLocalISOString(d);
+                    const today = getLocalISOString(new Date());
+
+                    const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
+                    const day = d.getDate();
+                    const month = d.toLocaleDateString('en-US', { month: 'short' });
+
+                    const isToday = dateStr === today;
+                    const title = isToday ? `Today (${weekday}, ${day} ${month})` : `${weekday}, ${day} ${month}`;
+
+                    columns.push({
+                        id: dateStr,
+                        title: title,
+                        icon: isToday ? '📌' : '📅'
+                    });
+                }
+
+                columns.push({ id: 'future', title: 'Future (Pick Date)', icon: '🔮' });
+            } else {
+                // Standard view columns
+                columns = [
+                    { id: 'inbox', title: 'Inbox', icon: '📥' },
+                    { id: 'backlog', title: 'Backlog', icon: '📋' },
+                    { id: 'today', title: 'Today', icon: '📌' },
+                    { id: 'future', title: 'Future (Pick Date)', icon: '🔮' }
+                ];
+            }
+
+            // Generate options
+            columns.forEach(col => {
+                const button = document.createElement('button');
+                button.className = 'move-option';
+
+                // Mark current column
+                if (col.id === currentColId) {
+                    button.classList.add('current');
+                }
+
+                // Disable inbox for daily note tasks
+                if (col.id === 'inbox' && isFromDailyNote) {
+                    button.disabled = true;
+                    button.style.opacity = '0.4';
+                    button.style.cursor = 'not-allowed';
+                    button.title = 'Cannot move daily note tasks to Inbox';
+                }
+
+                button.innerHTML = `
+                    <span class="move-option-icon">${col.icon}</span>
+                    <span>${col.title}${col.id === currentColId ? ' (current)' : ''}</span>
+                `;
+
+                button.onclick = () => {
+                    if (!button.disabled) {
+                        handleMoveTask(col.id);
+                    }
+                };
+
+                optionsContainer.appendChild(button);
+            });
+
+            // Open modal
+            document.getElementById('moveModal').classList.add('open');
+        }
+
+        function closeMoveModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('moveModal').classList.remove('open');
+            moveTaskId = null;
+            moveTaskCurrentColumn = null;
+        }
+
+        async function handleMoveTask(targetColId) {
+            if (!moveTaskId) return;
+
+            // Don't do anything if moving to same column
+            if (targetColId === moveTaskCurrentColumn) {
+                closeMoveModal();
+                return;
+            }
+
+            const task = TASKS_CACHE.find(t => t.id === moveTaskId);
+            if (!task) {
+                closeMoveModal();
+                return;
+            }
+
+            // Close modal first
+            closeMoveModal();
+
+            // Handle future column - show date picker
+            if (targetColId === 'future') {
+                openDatePicker(async (selectedDate) => {
+                    await moveTask(moveTaskId, targetColId, true, selectedDate);
+                });
+                return;
+            }
+
+            // Handle backlog column - show backlog date picker
+            if (targetColId === 'backlog') {
+                openBacklogDatePicker(async (selectedDate) => {
+                    await moveTask(moveTaskId, targetColId, true, selectedDate);
+                });
+                return;
+            }
+
+            // Direct move for other columns
+            await moveTask(moveTaskId, targetColId, true, null);
         }
 
         // --- HOTKEY REFERENCE MODAL FUNCTIONS ---
@@ -2787,7 +3065,9 @@
 
             const el = document.createElement('div');
             el.className = `card ${isCompleted ? 'completed' : ''}`;
-            el.draggable = true;
+            // Disable drag on mobile devices
+            const isMobileDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            el.draggable = !isMobileDevice;
             el.id = task.id;
             el.dataset.taskId = task.id;
 
@@ -2845,6 +3125,7 @@
                     <div class="checkbox ${isCompleted ? 'checked' : ''}" onclick="toggleTask('${task.id}', event)"></div>
                     <div class="card-content" onclick="openTaskInCraft('${task.id}', event)">${renderedContent}</div>
                     <div class="task-actions">
+                        <button class="move-btn" onclick="openMoveModal('${task.id}', '${listId}', event)" title="Move task">↗</button>
                         <button class="edit-btn" onclick="enterEditMode('${task.id}', event)" title="Edit task">✎</button>
                         <button class="delete-btn" onclick="deleteTask('${task.id}', event)" title="Delete task">🗑️</button>
                     </div>
@@ -2865,7 +3146,7 @@
                 clearDragExpandState();
             };
 
-            // Mobile touch handling - distinguish taps from drags
+            // Mobile touch handling - tap detection for interactive elements
             let touchStartX, touchStartY, touchStartTime;
             const TAP_THRESHOLD = 10; // pixels
             const TAP_TIMEOUT = 300; // milliseconds
@@ -2896,6 +3177,9 @@
                         } else if (target.classList.contains('card-content') || target.closest('.card-content')) {
                             e.preventDefault();
                             openTaskInCraft(task.id, e);
+                        } else if (target.classList.contains('move-btn') || target.closest('.move-btn')) {
+                            e.preventDefault();
+                            openMoveModal(task.id, listId, e);
                         } else if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
                             e.preventDefault();
                             enterEditMode(task.id, e);
