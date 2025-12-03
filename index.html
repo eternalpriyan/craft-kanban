@@ -522,6 +522,8 @@
             border: 1px solid transparent;
             user-select: none;
             position: relative;
+            /* Required for mobile-drag-drop polyfill */
+            touch-action: none;
         }
 
         [data-theme="dark"] .card {
@@ -881,6 +883,19 @@
             .column.column-collapsed .count,
             .column.column-collapsed .task-list {
                 display: block;
+            }
+
+            /* Mobile: Always show task actions since there's no hover */
+            .task-actions {
+                opacity: 1;
+            }
+
+            /* Mobile: Make interactive elements tappable */
+            .card-content,
+            .checkbox,
+            .edit-btn,
+            .delete-btn {
+                touch-action: manipulation;
             }
         }
 
@@ -2703,6 +2718,49 @@
                 clearDragExpandState();
             };
 
+            // Mobile touch handling - distinguish taps from drags
+            let touchStartX, touchStartY, touchStartTime;
+            const TAP_THRESHOLD = 10; // pixels
+            const TAP_TIMEOUT = 300; // milliseconds
+
+            el.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                touchStartX = touch.clientX;
+                touchStartY = touch.clientY;
+                touchStartTime = Date.now();
+            }, { passive: true });
+
+            el.addEventListener('touchend', (e) => {
+                if (touchStartX === undefined) return;
+
+                const touch = e.changedTouches[0];
+                const deltaX = Math.abs(touch.clientX - touchStartX);
+                const deltaY = Math.abs(touch.clientY - touchStartY);
+                const deltaTime = Date.now() - touchStartTime;
+
+                // Check if it's a tap (minimal movement and short duration)
+                if (deltaX < TAP_THRESHOLD && deltaY < TAP_THRESHOLD && deltaTime < TAP_TIMEOUT) {
+                    const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                    if (target) {
+                        // Check what was tapped and trigger appropriate action
+                        if (target.classList.contains('checkbox') || target.closest('.checkbox')) {
+                            e.preventDefault();
+                            toggleTask(task.id, e);
+                        } else if (target.classList.contains('card-content') || target.closest('.card-content')) {
+                            e.preventDefault();
+                            openTaskInCraft(task.id, e);
+                        } else if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
+                            e.preventDefault();
+                            enterEditMode(task.id, e);
+                        } else if (target.classList.contains('delete-btn') || target.closest('.delete-btn')) {
+                            e.preventDefault();
+                            deleteTask(task.id, e);
+                        }
+                    }
+                }
+                touchStartX = touchStartY = touchStartTime = undefined;
+            }, { passive: false });
+
             // Hover tracking for delete key
             el.onmouseenter = () => { HOVERED_TASK_ID = task.id; };
             el.onmouseleave = () => { if (HOVERED_TASK_ID === task.id) HOVERED_TASK_ID = null; };
@@ -2756,28 +2814,38 @@
         }
 
         function openTaskInCraft(taskId, event) {
-            event.preventDefault();
-            event.stopPropagation();
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
 
             // Craft deep link format with spaceId
             const deepLink = SPACE_ID
                 ? `craftdocs://open?blockId=${taskId}&spaceId=${SPACE_ID}`
                 : `craftdocs://open?blockId=${taskId}`;
 
-            // Use iframe approach - most reliable across browsers
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = deepLink;
-            document.body.appendChild(iframe);
+            // Detect mobile/touch device
+            const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-            // Clean up after a short delay
-            setTimeout(() => {
-                document.body.removeChild(iframe);
-            }, 100);
+            if (isMobile) {
+                // On mobile, use direct location change - works better with iOS app linking
+                window.location.href = deepLink;
+            } else {
+                // Use iframe approach for desktop - most reliable across browsers
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = deepLink;
+                document.body.appendChild(iframe);
+
+                // Clean up after a short delay
+                setTimeout(() => {
+                    document.body.removeChild(iframe);
+                }, 100);
+            }
         }
 
         async function toggleTask(taskId, event) {
-            event.stopPropagation();
+            if (event) event.stopPropagation();
 
             const task = TASKS_CACHE.find(t => t.id === taskId);
             if (!task) return;
@@ -3133,8 +3201,10 @@
         // --- INLINE EDITING ---
 
         function enterEditMode(taskId, event) {
-            event.stopPropagation();
-            event.preventDefault();
+            if (event) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
 
             const task = TASKS_CACHE.find(t => t.id === taskId);
             if (!task) return;
