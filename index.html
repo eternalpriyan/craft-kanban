@@ -2467,13 +2467,16 @@
                 return;
             }
 
+            // Save the task ID before closing modal (closeMoveModal sets moveTaskId to null)
+            const taskIdToMove = moveTaskId;
+
             // Close modal first
             closeMoveModal();
 
             // Handle future column - show date picker
             if (targetColId === 'future') {
                 openDatePicker(async (selectedDate) => {
-                    await moveTask(moveTaskId, targetColId, true, selectedDate);
+                    await moveTask(taskIdToMove, targetColId, true, selectedDate);
                 });
                 return;
             }
@@ -2481,13 +2484,13 @@
             // Handle backlog column - show backlog date picker
             if (targetColId === 'backlog') {
                 openBacklogDatePicker(async (selectedDate) => {
-                    await moveTask(moveTaskId, targetColId, true, selectedDate);
+                    await moveTask(taskIdToMove, targetColId, true, selectedDate);
                 });
                 return;
             }
 
             // Direct move for other columns
-            await moveTask(moveTaskId, targetColId, true, null);
+            await moveTask(taskIdToMove, targetColId, true, null);
         }
 
         // --- HOTKEY REFERENCE MODAL FUNCTIONS ---
